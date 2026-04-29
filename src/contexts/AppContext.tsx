@@ -792,19 +792,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (dbQuotations && dbQuotations.length > 0) {
         const formattedQuotations: Quotation[] = dbQuotations.map((q: any) => ({
           id: q.id,
-          number: q.number,
-          clientId: q.client_id,
+          number: q.number || `QT-${q.id}`,
+          clientId: q.client_id || q.party_id || '',
           salesmanId: q.salesman_id,
           items: [], // Would need to sync line items separately
-          netTotal: q.net_total,
+          netTotal: Number(q.net_total ?? q.total ?? 0),
           vatAmount: q.vat_amount || 0,
           total: q.total || q.net_total,
           status: q.status,
           convertedInvoiceId: q.converted_invoice_id,
           notes: q.notes,
           terms: q.terms,
-          createdAt: q.created_at,
-          updatedAt: q.updated_at,
+          createdAt: q.created_at || new Date().toISOString(),
+          updatedAt: q.updated_at || q.created_at || new Date().toISOString(),
         }));
         setQuotations(formattedQuotations);
       }
@@ -814,20 +814,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (dbInvoices && dbInvoices.length > 0) {
         const formattedInvoices: Invoice[] = dbInvoices.map((i: any) => ({
           id: i.id,
-          number: i.number,
-          clientId: i.client_id,
+          number: i.number || i.invoice_no || `INV-${i.id}`,
+          clientId: i.client_id || i.party_id || '',
           salesmanId: i.salesman_id,
           quotationId: i.quotation_id,
           items: [], // Would need to sync line items separately
-          netTotal: i.net_total,
+          netTotal: Number(i.net_total ?? i.total ?? 0),
           vatAmount: i.vat_amount || 0,
           total: i.total || i.net_total,
-          status: i.status,
-          dueDate: i.due_date,
+          status: (i.status || 'sent'),
+          dueDate: i.due_date || i.created_at || new Date().toISOString().slice(0,10),
           notes: i.notes,
           terms: i.terms,
-          createdAt: i.created_at,
-          updatedAt: i.updated_at,
+          createdAt: i.created_at || new Date().toISOString(),
+          updatedAt: i.updated_at || i.created_at || new Date().toISOString(),
         }));
         setInvoices(formattedInvoices);
       }
@@ -837,18 +837,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (dbPurchaseInvoices && dbPurchaseInvoices.length > 0) {
         const formattedPurchaseInvoices: PurchaseInvoice[] = dbPurchaseInvoices.map((p: any) => ({
           id: p.id,
-          number: p.number,
-          vendorId: p.vendor_id,
+          number: p.number || `PINV-${p.id}`,
+          vendorId: p.vendor_id || p.party_id || '',
           items: [], // Would need to sync line items separately
-          netTotal: p.net_total,
+          netTotal: Number(p.net_total ?? p.total ?? 0),
           vatAmount: p.vat_amount || 0,
           total: p.total || p.net_total,
           status: p.status,
-          dueDate: p.due_date,
-          notes: p.notes,
+          dueDate: p.due_date || p.created_at || new Date().toISOString().slice(0,10),
+          notes: p.notes || '',
           terms: p.terms,
-          createdAt: p.created_at,
-          updatedAt: p.updated_at,
+          createdAt: p.created_at || new Date().toISOString(),
+          updatedAt: p.updated_at || p.created_at || new Date().toISOString(),
         }));
         setPurchaseInvoices(formattedPurchaseInvoices);
       }
@@ -858,17 +858,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (dbPayments && dbPayments.length > 0) {
         const formattedPayments: Payment[] = dbPayments.map((p: any) => ({
           id: p.id,
-          invoiceId: p.invoice_id,
-          invoiceType: p.invoice_type,
+          invoiceId: p.invoice_id || p.invoiceId || '',
+          invoiceType: p.invoice_type || 'sales',
           amount: p.amount,
-          date: p.date,
+          date: p.date || p.created_at?.slice?.(0,10) || new Date().toISOString().slice(0,10),
           method: p.method,
           reference: p.reference,
-          notes: p.notes,
-          createdAt: p.created_at,
+          notes: p.notes || '',
+          createdAt: p.created_at || new Date().toISOString(),
         }));
-        // Note: This will replace all payments, might want to merge instead
-        // For now, we'll set them directly
+        setPayments(formattedPayments);
       }
 
       // Sync business settings from database
