@@ -74,6 +74,45 @@ function initDatabase() {
 // ================= IPC =================
 function setupIPC() {
 
+
+  // PARTIES
+  ipcMain.handle('get-parties', () => {
+    return new Promise((resolve, reject) => {
+      db.all(`SELECT * FROM parties ORDER BY created_at DESC`, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  });
+
+  // QUOTATIONS (placeholder until dedicated table migration)
+  ipcMain.handle('save-quotation', (_, quotation) => Promise.resolve({ id: quotation?.id ?? null }));
+  ipcMain.handle('get-quotations', () => Promise.resolve([]));
+
+  // PURCHASE INVOICES (placeholder until dedicated table migration)
+  ipcMain.handle('save-purchase-invoice', (_, purchaseInvoice) => Promise.resolve({ id: purchaseInvoice?.id ?? null }));
+  ipcMain.handle('get-purchase-invoices', () => Promise.resolve([]));
+
+  // PAYMENTS LIST
+  ipcMain.handle('get-payments', () => {
+    return new Promise((resolve, reject) => {
+      db.all(`SELECT * FROM payments ORDER BY created_at DESC`, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  });
+
+  // ACCOUNTS / SETTINGS placeholders for renderer compatibility
+  ipcMain.handle('get-accounts', () => Promise.resolve([]));
+  ipcMain.handle('save-account', () => Promise.resolve(true));
+  ipcMain.handle('get-business-settings', () => Promise.resolve({}));
+  ipcMain.handle('save-business-settings', () => Promise.resolve(true));
+
+  // DIALOGS
+  ipcMain.handle('show-save-dialog', async (_, options) => dialog.showSaveDialog(mainWindow, options));
+  ipcMain.handle('show-open-dialog', async (_, options) => dialog.showOpenDialog(mainWindow, options));
+
   // DB PATH
   ipcMain.handle('get-db-path', () => {
     return path.join(app.getPath('userData'), 'bookit.db');
