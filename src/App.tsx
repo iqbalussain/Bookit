@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -46,11 +46,16 @@ const queryClient = new QueryClient();
 
 function StorageErrorListener() {
   const { toast } = useToast();
+  const toastRef = useRef(toast);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   useEffect(() => {
     const handler = (e: Event) => {
       const { message, isQuota } = (e as CustomEvent).detail ?? {};
-      toast({
+      toastRef.current({
         title: isQuota ? "Storage full" : "Could not save data",
         description: message ?? "An unexpected storage error occurred.",
         variant: "destructive",
@@ -59,11 +64,11 @@ function StorageErrorListener() {
 
     window.addEventListener("bookit:storage-error", handler);
     return () => window.removeEventListener("bookit:storage-error", handler);
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     setConflictHandler((collection) => {
-      toast({
+      toastRef.current({
         title: "Record changed by another user",
         description: `Your edit on ${collection.replace(
           "/api/records/",
@@ -72,7 +77,9 @@ function StorageErrorListener() {
         variant: "destructive",
       });
     });
-  }, [toast]);
+
+    return () => setConflictHandler(null);
+  }, []);
 
   return null;
 }

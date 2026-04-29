@@ -168,6 +168,21 @@ function setupIPC() {
     });
   });
 
+
+  // RENDERER ERROR LOGS
+  ipcMain.handle('renderer-error-log', (_, payload = {}) => {
+    try {
+      const { message = 'Unknown renderer error', stack = '', componentStack = '', context = '' } = payload || {};
+      diagnostics.log('error', `[renderer] ${message}${context ? ` | context: ${context}` : ''}`);
+      if (stack) diagnostics.log('error', `[renderer stack] ${stack}`);
+      if (componentStack) diagnostics.log('error', `[react component stack] ${componentStack}`);
+      return true;
+    } catch (error) {
+      diagnostics.log('error', `Failed to write renderer error log: ${error?.message || error}`);
+      return false;
+    }
+  });
+
   // BACKUP
   ipcMain.handle('backup-db', (_, dest) => {
     const dbPath = path.join(app.getPath('userData'), 'bookit.db');
