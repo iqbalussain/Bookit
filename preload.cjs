@@ -40,5 +40,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Backup/Restore
   backup: (destinationPath) => ipcRenderer.invoke('backup-db', destinationPath),
-  restore: (backupPath) => ipcRenderer.invoke('restore-db', backupPath)
+  restore: (backupPath) => ipcRenderer.invoke('restore-db', backupPath),
+
+  // Diagnostics
+  logRendererError: (payload) => ipcRenderer.invoke('renderer-error-log', payload)
 });
