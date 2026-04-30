@@ -1,6 +1,8 @@
 import { ReactNode, useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
+import { FloatingActionButton } from '@/components/layout/FloatingActionButton';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import {
@@ -229,7 +231,10 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           )}
 
-          <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+          <main className="p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">{children}</main>
+
+          <MobileBottomNav />
+          <FloatingActionButton />
         </div>
       </div>
     </div>
