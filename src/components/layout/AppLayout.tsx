@@ -108,7 +108,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Link
                     key={item.name}
                     to={item.href || '/'}
-                    onClick={(event) => { event.preventDefault(); navigateTo(item.href || '/'); }}
+                    onClick={() => navigateTo(item.href || '/')}
                     className={cn(
                       'group flex items-center gap-3 rounded-3xl px-4 py-3 transition-all duration-200',
                       active
@@ -140,7 +140,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                       <Link
                         key={item.name}
                         to={item.href}
-                        onClick={(event) => { event.preventDefault(); navigateTo(item.href); }}
+                        onClick={() => navigateTo(item.href)}
                         className={cn(
                           'flex items-center gap-2 rounded-2xl px-3 py-2 text-sm transition-colors',
                           getIsActive(item.href)
@@ -224,14 +224,13 @@ export function AppLayout({ children }: AppLayoutProps) {
                     <Link
                       key={item.name}
                       to={item.href || '/'}
-                      onClick={(event) => { event.preventDefault(); navigateTo(item.href || '/'); }}
+                      onClick={() => navigateTo(item.href || '/')}
                       className={cn(
                         'flex items-center gap-3 rounded-3xl px-4 py-3 transition',
                         getIsActive(item.href)
                           ? 'bg-primary text-primary-foreground'
                           : 'border border-border/70 bg-card text-foreground hover:bg-primary/10',
                       )}
-                      onClick={() => setSidebarOpen(false)}
                     >
                       <item.icon className="h-4 w-4" />
                       {item.name}
