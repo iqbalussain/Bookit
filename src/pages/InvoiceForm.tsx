@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import { generatePDF, shareViaWhatsApp } from '@/lib/documentUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ItemPicker } from '@/components/ItemPicker';
 import { safeRandomUUID } from '@/lib/uuid';
+import { useDelayedMissingRedirect } from '@/hooks/useDelayedMissingRedirect';
 
 export default function InvoiceForm() {
   const { id } = useParams();
@@ -234,7 +235,7 @@ export default function InvoiceForm() {
     shareViaWhatsApp({ type: 'invoice', document: existingInvoice, client, settings });
   };
 
-  useEffect(() => { if (isEditing && !existingInvoice) navigate('/invoices'); }, [isEditing, existingInvoice, navigate]);
+  useDelayedMissingRedirect(Boolean(isEditing), Boolean(existingInvoice), '/invoices');
 
   const statusColors: Record<InvoiceStatus, string> = {
     draft: 'bg-muted text-muted-foreground',

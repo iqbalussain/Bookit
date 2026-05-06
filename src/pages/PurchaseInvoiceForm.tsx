@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import { Plus, Trash2, Save, ArrowLeft, Edit2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ItemPicker } from '@/components/ItemPicker';
 import { safeRandomUUID } from '@/lib/uuid';
+import { useDelayedMissingRedirect } from '@/hooks/useDelayedMissingRedirect';
 
 export default function PurchaseInvoiceForm() {
   const { id } = useParams();
@@ -149,7 +150,7 @@ export default function PurchaseInvoiceForm() {
     }
   };
 
-  useEffect(() => { if (isEditing && !existing) navigate('/purchases'); }, [isEditing, existing, navigate]);
+  useDelayedMissingRedirect(Boolean(isEditing), Boolean(existing), '/purchases');
 
   return (
     <div className="space-y-3 pb-24 lg:pb-4">
