@@ -16,7 +16,8 @@
     "start": "electron .",
     "rebuild-electron": "electron-rebuild",
     "dist": "npm run build && npx electron-builder --win nsis --x64 --publish never",
-    "build-win": "npm run build && npm run rebuild-electron && npx electron-builder --win nsis --x64 --publish never"
+    "build-win": "npm run build && npm run rebuild-electron && npx electron-builder --win nsis --x64 --publish never",
+    "build:dev": "vite build --mode development"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
