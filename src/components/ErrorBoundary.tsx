@@ -29,8 +29,9 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary caught:', error, info);
     this.setState({ componentStack: info.componentStack });
 
-    if (typeof window !== 'undefined' && window.electronAPI?.logRendererError) {
-      void window.electronAPI.logRendererError({
+    const api = typeof window !== 'undefined' ? (window as any).electronAPI : undefined;
+    if (api?.logRendererError) {
+      void api.logRendererError({
         message: error.message,
         stack: error.stack,
         componentStack: info.componentStack,
