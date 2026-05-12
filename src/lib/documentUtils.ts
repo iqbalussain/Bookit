@@ -78,7 +78,7 @@ export async function generatePDF({ type, document: docData, client, settings }:
   anchor.click();
   anchor.remove();
 
-  window.URL.revokeObjectURL(objectUrl);
+  window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
 }
 
 // ---------------- WHATSAPP ----------------
@@ -113,18 +113,15 @@ export async function generatePDFBlob({ type, document: docData, client, setting
   const invoice = isInvoice ? (docData as Invoice) : null;
 
   const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>${docData.number}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
+        .pdf-document { 
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           padding: 40px;
           color: #1a1a2e;
-          max-width: 800px;
-          margin: 0 auto;
+          width: 794px;
+          min-height: 1123px;
+          background: #ffffff;
         }
         .header { 
           display: flex; 
@@ -251,8 +248,7 @@ export async function generatePDFBlob({ type, document: docData, client, setting
           .no-print { display: none; }
         }
       </style>
-    </head>
-    <body>
+      <div class="pdf-document">
       <div class="header">
         <div class="logo-section">
           ${settings.logo ? `<img src="${settings.logo}" class="logo" alt="Logo">` : ''}
@@ -273,6 +269,7 @@ export async function generatePDFBlob({ type, document: docData, client, setting
           ${isInvoice && invoice ? `<div class="doc-date">Due: ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</div>` : ''}
         </div>
       </div>
+      <div class="parties">
         <div class="party-section">
           <h3>Bill To</h3>
           <div class="party-name">${client?.name || 'Client'}</div>
@@ -362,18 +359,37 @@ export async function generatePDFBlob({ type, document: docData, client, setting
       <div class="footer">
         Thank you for your business!
       </div>
-    </body>
-    </html>
+    </div>
   `;
 
   const container = window.document.createElement('div');
   container.innerHTML = html;
   container.style.position = 'fixed';
-  container.style.left = '-10000px';
+  container.style.left = '0';
   container.style.top = '0';
+  container.style.width = '794px';
+  container.style.background = '#ffffff';
+  container.style.pointerEvents = 'none';
+  container.style.zIndex = '-1';
   window.document.body.appendChild(container);
 
   try {
+    const pdfElement = container.querySelector('.pdf-document') as HTMLElement | null;
+    if (!pdfElement) {
+      throw new Error('PDF document could not be prepared.');
+    }
+
+    await window.document.fonts?.ready;
+    await Promise.all(
+      Array.from(container.querySelectorAll('img')).map((img) => {
+        if (img.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+      })
+    );
+
     const html2pdfModule = await import('html2pdf.js');
     const html2pdf = (html2pdfModule.default ?? html2pdfModule) as any;
     const worker = html2pdf()
@@ -381,10 +397,15 @@ export async function generatePDFBlob({ type, document: docData, client, setting
         margin: [10, 10, 10, 10],
         filename: `${type}-${docData.number}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          windowWidth: 794,
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       })
-      .from(container)
+      .from(pdfElement)
       .toPdf();
 
     return await worker.outputPdf('blob');

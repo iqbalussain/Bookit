@@ -1,6 +1,6 @@
 {
   "name": "bookit",
-  "productName": "Bit2book",
+  "productName": "Bookit",
   "version": "2.0.0",
   "type": "module",
   "description": "Bookit - Modern booking management desktop application built with Electron and React.",

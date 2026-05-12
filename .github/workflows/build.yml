@@ -33,7 +33,7 @@ jobs:
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
-          name: Bit2book-EXE
+          name: Bookit-EXE
           path: |
             dist/*.exe
             release/*.exe

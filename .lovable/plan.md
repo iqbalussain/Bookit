@@ -76,7 +76,7 @@ That is the entire change set. Three files. Everything else (routes, menus, AppL
 3. Dashboard renders fast (Suspense fallback briefly visible, then content).
 4. Each route navigates without re-downloading the whole bundle.
 5. `npm run build` produces `dist/` with no TS errors.
-6. Pushing a tag on GitHub triggers `release.yml` and produces `Bit2book Setup x.y.z.exe`.
+6. Pushing a tag on GitHub triggers `release.yml` and produces `Bookit Setup x.y.z.exe`.
 
 ## Out of scope (per your answers)
 

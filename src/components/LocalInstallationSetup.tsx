@@ -39,7 +39,7 @@ export default function LocalInstallationSetup() {
       description: 'Redirecting to download page. You can also use this web version for instant access.',
     });
     // Open the releases page or download link
-    window.open('https://github.com/iqbalussain/Bit2book/releases', '_blank');
+    window.open('https://github.com/iqbalussain/Bookit/releases', '_blank');
   };
 
   const handleConfigureLocal = () => {
@@ -109,7 +109,7 @@ export default function LocalInstallationSetup() {
             <AlertCircle className="h-5 w-5 text-amber-600" />
             <CardTitle className="text-base">Setup Required</CardTitle>
           </div>
-          <CardDescription>Choose how you want to use Bit2book</CardDescription>
+          <CardDescription>Choose how you want to use Bookit</CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

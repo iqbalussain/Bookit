@@ -1,6 +1,6 @@
-# Bit2book Silent Installation Guide
+# Bookit Silent Installation Guide
 
-This guide explains how to install Bit2book on Windows using silent/unattended mode, ideal for deploying to multiple PCs with minimal user interaction.
+This guide explains how to install Bookit on Windows using silent/unattended mode, ideal for deploying to multiple PCs with minimal user interaction.
 
 ---
 
@@ -18,7 +18,7 @@ This guide explains how to install Bit2book on Windows using silent/unattended m
 
 ### Quick Start
 
-1. Download: `Bit2book Setup 1.0.0.exe` and `scripts/silent-install.bat`
+1. Download: `Bookit Setup 1.0.0.exe` and `scripts/silent-install.bat`
 1. Place both in the same folder
 1. Right-click `silent-install.bat` → **Run as administrator**
 1. Wait for installation to complete
@@ -35,19 +35,19 @@ silent-install.bat
 ### With Custom Installation Path
 
 ```cmd
-silent-install.bat "D:\Applications\Bit2book"
+silent-install.bat "D:\Applications\Bookit"
 ```
 
 ### With Custom Path and Quiet Mode
 
 ```cmd
-silent-install.bat "C:\Program Files\Bit2book" yes
+silent-install.bat "C:\Program Files\Bookit" yes
 ```
 
 ### Batch Script Parameters
 
 | Parameter | Description | Default |
-| `[install_path]` Installation directory | `%ProgramFiles%\\Bit2book` |
+| `[install_path]` Installation directory | `%ProgramFiles%\\Bookit` |
 | `[quiet]` | Silent mode with no prompts (yes/no) | `yes` |
 
 ### Batch Script Exit Codes
@@ -65,10 +65,10 @@ silent-install.bat "C:\Program Files\Bit2book" yes
 silent-install.bat
 
 :: Install to custom location
-silent-install.bat "D:\Bit2book"
+silent-install.bat "D:\Bookit"
 
 :: Install to custom location with verbose output
-silent-install.bat "C:\Program Files\Bit2book" no
+silent-install.bat "C:\Program Files\Bookit" no
 ```
 
 ### Batch Script Logging
@@ -76,13 +76,13 @@ silent-install.bat "C:\Program Files\Bit2book" no
 After installation, logs are saved to:
 
 ```text
-%LOCALAPPDATA%\Bit2book\installer-logs\
+%LOCALAPPDATA%\Bookit\installer-logs\
 ```
 
 Example path:
 
 ```text
-C:\Users\JohnDoe\AppData\Local\Bit2book\installer-logs\install-2024-04-24-14-30-45.log
+C:\Users\JohnDoe\AppData\Local\Bookit\installer-logs\install-2024-04-24-14-30-45.log
 ```
 
 ---
@@ -104,14 +104,14 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 
 ```powershell
 cd C:\path\to\scripts
-.\silent-install.ps1 -InstallerPath "C:\Bit2book Setup 1.0.0.exe"
+.\silent-install.ps1 -InstallerPath "C:\Bookit Setup 1.0.0.exe"
 ```
 
 ### PowerShell Parameters
 
 | Parameter | Description | Default |
-| `-InstallerPath` | Full path to Bit2book Setup.exe | Auto-detect in script dir |
-| `-InstallPath` | Installation directory | `$env:ProgramFiles\\Bit2book` |
+| `-InstallerPath` | Full path to Bookit Setup.exe | Auto-detect in script dir |
+| `-InstallPath` | Installation directory | `$env:ProgramFiles\\Bookit` |
 | `-NoRestart` | Do not restart after install | (Restart if needed) |
 | `-Quiet` | Suppress console output | (Verbose mode) |
 | `-LogPath` | Custom log file location | Auto-generated |
@@ -121,36 +121,36 @@ cd C:\path\to\scripts
 **Basic installation:**
 
 ```powershell
-.\silent-install.ps1 -InstallerPath "C:\Bit2book Setup 1.0.0.exe"
+.\silent-install.ps1 -InstallerPath "C:\Bookit Setup 1.0.0.exe"
 ```
 
 **Custom installation path:**
 
 ```powershell
-.\silent-install.ps1 -InstallerPath "C:\Bit2book Setup 1.0.0.exe" -InstallPath "D:\Apps\Bit2book"
+.\silent-install.ps1 -InstallerPath "C:\Bookit Setup 1.0.0.exe" -InstallPath "D:\Apps\Bookit"
 ```
 
 **Silent with no console output:**
 
 ```powershell
-.\silent-install.ps1 -InstallerPath "C:\Bit2book Setup 1.0.0.exe" -Quiet
+.\silent-install.ps1 -InstallerPath "C:\Bookit Setup 1.0.0.exe" -Quiet
 ```
 
 **No automatic restart:**
 
 ```powershell
-.\silent-install.ps1 -InstallerPath "C:\Bit2book Setup 1.0.0.exe" -Quiet -NoRestart
+.\silent-install.ps1 -InstallerPath "C:\Bookit Setup 1.0.0.exe" -Quiet -NoRestart
 ```
 
 **All options:**
 
 ```powershell
 .\silent-install.ps1 `
-  -InstallerPath "C:\Installers\Bit2book Setup 1.0.0.exe" `
-  -InstallPath "D:\Software\Bit2book" `
+  -InstallerPath "C:\Installers\Bookit Setup 1.0.0.exe" `
+  -InstallPath "D:\Software\Bookit" `
   -Quiet `
   -NoRestart `
-  -LogPath "C:\Logs\Bit2book-install.log"
+  -LogPath "C:\Logs\Bookit-install.log"
 ```
 
 ### PowerShell Exit Codes
@@ -166,13 +166,13 @@ cd C:\path\to\scripts
 Logs saved to:
 
 ```text
-%LOCALAPPDATA%\Bit2book\installer-logs\install-YYYY-MM-DD-HH-MM-SS.log
+%LOCALAPPDATA%\Bookit\installer-logs\install-YYYY-MM-DD-HH-MM-SS.log
 ```
 
 View logs during installation:
 
 ```powershell
-Get-Content "C:\Users\<YourName>\AppData\Local\Bit2book\installer-logs\*.log" -Tail 50
+Get-Content "C:\Users\<YourName>\AppData\Local\Bookit\installer-logs\*.log" -Tail 50
 ```
 
 ---
@@ -183,11 +183,11 @@ Get-Content "C:\Users\<YourName>\AppData\Local\Bit2book\installer-logs\*.log" -T
 
 **On Domain Controller:**
 
-1. Create shared network folder: `\\server\Bit2book-deploy`
+1. Create shared network folder: `\\server\Bookit-deploy`
 1. Copy installer and script
 1. Create group policy to run batch script at startup:
    - **Group Policy Editor** → **Computer Configuration** → **Windows Settings** → **Scripts** → **Startup**
-   - Add: `\\server\Bit2book-deploy\silent-install.bat`
+   - Add: `\\server\Bookit-deploy\silent-install.bat`
 
 **On Each Client (runs at next startup):**
 
@@ -209,12 +209,12 @@ $Computers = @(
 )
 
 # Define installer and script paths
-$InstallerPath = "\\server\Bit2book-deploy\Bit2book Setup 1.0.0.exe"
-$ScriptPath = "\\server\Bit2book-deploy\silent-install.ps1"
+$InstallerPath = "\\server\Bookit-deploy\Bookit Setup 1.0.0.exe"
+$ScriptPath = "\\server\Bookit-deploy\silent-install.ps1"
 
 # Run installation on each computer
 foreach ($Computer in $Computers) {
-    Write-Host "Installing Bit2book on $Computer..."
+    Write-Host "Installing Bookit on $Computer..."
     
     Invoke-Command -ComputerName $Computer -ScriptBlock {
         param($Installer, $Script)
@@ -232,8 +232,8 @@ Write-Host "All installations completed!"
 
 **Setup network share:**
 
-1. Copy installer to: `\\server\Bit2book-deploy\Bit2book Setup.exe`
-1. Copy batch script to: `\\server\Bit2book-deploy\silent-install.bat`
+1. Copy installer to: `\\server\Bookit-deploy\Bookit Setup.exe`
+1. Copy batch script to: `\\server\Bookit-deploy\silent-install.bat`
 1. Create a wrapper batch file: `deploy-all.bat`
 
 **deploy-all.bat:**
@@ -241,9 +241,9 @@ Write-Host "All installations completed!"
 ```batch
 @echo off
 REM Run installation from network share
-net use Z: \\server\Bit2book-deploy /persistent:yes
+net use Z: \\server\Bookit-deploy /persistent:yes
 cd Z:
-silent-install.bat "C:\Program Files\Bit2book"
+silent-install.bat "C:\Program Files\Bookit"
 pause
 ```
 
@@ -268,11 +268,11 @@ pause
 
 #### Fix 2
 
-- Ensure `Bit2book Setup.exe` is in the same folder as the script
+- Ensure `Bookit Setup.exe` is in the same folder as the script
 - Use full path to installer:
 
 ```cmd
-silent-install.bat "C:\path\Bit2book Setup 1.0.0.exe"
+silent-install.bat "C:\path\Bookit Setup 1.0.0.exe"
 ```
 
 ### Issue: Installation hangs or takes very long
@@ -291,7 +291,7 @@ silent-install.bat "C:\path\Bit2book Setup 1.0.0.exe"
 1. Check log file:
 
 ```text
-C:\Users\<YourName>\AppData\Local\Bit2book\installer-logs\
+C:\Users\<YourName>\AppData\Local\Bookit\installer-logs\
 ```
 
 1. Common causes:
@@ -305,11 +305,11 @@ C:\Users\<YourName>\AppData\Local\Bit2book\installer-logs\
 #### How to view logs
 
 ```cmd
-type "%LOCALAPPDATA%\Bit2book\installer-logs\*.log"
+type "%LOCALAPPDATA%\Bookit\installer-logs\*.log"
 ```
 
 ```cmd
-explorer "%LOCALAPPDATA%\Bit2book\installer-logs\"
+explorer "%LOCALAPPDATA%\Bookit\installer-logs\"
 ```
 
 ---
@@ -318,43 +318,43 @@ explorer "%LOCALAPPDATA%\Bit2book\installer-logs\"
 
 ### Check Installation
 
-Verify Bit2book was installed:
+Verify Bookit was installed:
 
 ```cmd
-REM Check if Bit2book.exe exists
-if exist "C:\Program Files\Bit2book\Bit2book.exe" (
+REM Check if Bookit.exe exists
+if exist "C:\Program Files\Bookit\Bookit.exe" (
     echo Installation successful!
 ) else (
     echo Installation failed!
 )
 ```
 
-### Launch Bit2book
+### Launch Bookit
 
 From command line:
 
 ```cmd
-start "C:\Program Files\Bit2book\Bit2book.exe"
+start "C:\Program Files\Bookit\Bookit.exe"
 ```
 
 From PowerShell:
 
 ```powershell
-& "C:\Program Files\Bit2book\Bit2book.exe"
+& "C:\Program Files\Bookit\Bookit.exe"
 ```
 
 ### Check Database Creation
 
-On first launch, Bit2book creates database at:
+On first launch, Bookit creates database at:
 
 ```text
-%LOCALAPPDATA%\Bit2book\invoiceflow.db
+%LOCALAPPDATA%\Bookit\invoiceflow.db
 ```
 
 Verify it exists:
 
 ```cmd
-dir "%LOCALAPPDATA%\Bit2book\invoiceflow.db"
+dir "%LOCALAPPDATA%\Bookit\invoiceflow.db"
 ```
 
 ---
@@ -373,8 +373,8 @@ dir "%LOCALAPPDATA%\Bit2book\invoiceflow.db"
 ### Installation Path Recommendations
 
 | Environment | Path |
-| Standard | `C:\Program Files\Bit2book` |
-| Applications drive | `D:\Applications\Bit2book` |
+| Standard | `C:\Program Files\Bookit` |
+| Applications drive | `D:\Applications\Bookit` |
 | Custom configuration | `/D=<Your Path>` |
 
 ### Network Considerations
@@ -387,10 +387,10 @@ dir "%LOCALAPPDATA%\Bit2book\invoiceflow.db"
 
 ## Uninstallation
 
-### Remove Bit2book
+### Remove Bookit
 
 ```cmd
-cd "C:\Program Files\Bit2book"
+cd "C:\Program Files\Bookit"
 uninstall.exe /S
 ```
 
@@ -401,13 +401,13 @@ Or use Control Panel → Programs → Uninstall a Program
 Database is stored separately, uninstalling does NOT delete your data:
 
 ```text
-C:\Users\<YourName>\AppData\Local\Bit2book\invoiceflow.db
+C:\Users\<YourName>\AppData\Local\Bookit\invoiceflow.db
 ```
 
 #### Backup before uninstall
 
 ```cmd
-copy "%LOCALAPPDATA%\Bit2book\invoiceflow.db" "D:\Backup\invoiceflow.db"
+copy "%LOCALAPPDATA%\Bookit\invoiceflow.db" "D:\Backup\invoiceflow.db"
 ```
 
 ---
@@ -416,7 +416,7 @@ copy "%LOCALAPPDATA%\Bit2book\invoiceflow.db" "D:\Backup\invoiceflow.db"
 
 ### Squirrel Windows Installer
 
-Bit2book uses Squirrel.Windows for installation. Command-line options:
+Bookit uses Squirrel.Windows for installation. Command-line options:
 
 | Option | Description |
 | `/S` | Silent installation |
@@ -425,16 +425,16 @@ Bit2book uses Squirrel.Windows for installation. Command-line options:
 
 ### What Gets Installed
 
-- **Application executable**: `Bit2book.exe`
+- **Application executable**: `Bookit.exe`
 - **Dependencies**: Chromium, Node modules (bundled)
 - **Registry entries**: For shortcuts, associations
-- **Start Menu shortcuts**: `C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Bit2book`
-- **Desktop shortcuts**: `%USERPROFILE%\Desktop\Bit2book.lnk`
+- **Start Menu shortcuts**: `C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Bookit`
+- **Desktop shortcuts**: `%USERPROFILE%\Desktop\Bookit.lnk`
 
 ### Database Location
 
 SQLite database is stored in user's local data folder:
 
 ```text
-%LOCALAPPDATA%\Bit2book\invoiceflow.db
+%LOCALAPPDATA%\Bookit\invoiceflow.db
 ```

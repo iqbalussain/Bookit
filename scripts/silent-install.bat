@@ -1,14 +1,14 @@
-:: Bit2book Silent Installer Script
+:: Bookit Silent Installer Script
 :: Usage: silent-install.bat [install_path] [quiet]
 :: 
 :: Parameters:
-::   [install_path]  - Installation directory (default: %ProgramFiles%\Bit2book)
+::   [install_path]  - Installation directory (default: %ProgramFiles%\Bookit)
 ::   [quiet]         - Silent mode with no prompts (yes/no, default: yes)
 ::
 :: Examples:
 ::   silent-install.bat
-::   silent-install.bat "D:\Applications\Bit2book" yes
-::   silent-install.bat "%ProgramFiles%\Bit2book" yes
+::   silent-install.bat "D:\Applications\Bookit" yes
+::   silent-install.bat "%ProgramFiles%\Bookit" yes
 ::
 :: Exit Codes:
 ::   0 = Success
@@ -22,7 +22,7 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 :: Colors (optional, for better readability)
 cls
 color 0A
-title Bit2book Silent Installer
+title Bookit Silent Installer
 
 :: ============================================================
 :: ADMIN CHECK
@@ -41,7 +41,7 @@ if %ERRORLEVEL% neq 0 (
 :: ============================================================
 :: PARSE ARGUMENTS
 :: ============================================================
-set "INSTALL_PATH=%ProgramFiles%\Bit2book"
+set "INSTALL_PATH=%ProgramFiles%\Bookit"
 set "QUIET_MODE=yes"
 
 if not "%~1"=="" (
@@ -55,8 +55,8 @@ if not "%~2"=="" (
 :: ENVIRONMENT SETUP
 :: ============================================================
 set "SCRIPT_DIR=%~dp0"
-set "INSTALLER_NAME=Bit2book Setup*.exe"
-set "LOG_DIR=%LOCALAPPDATA%\Bit2book\installer-logs"
+set "INSTALLER_NAME=Bookit Setup*.exe"
+set "LOG_DIR=%LOCALAPPDATA%\Bookit\installer-logs"
 set "LOG_FILE=%LOG_DIR%\install-%date:~-4%-%date:~-10,2%-%date:~-7,2%-%time:~0,2%-%time:~3,2%-%time:~6,2%.log"
 
 :: Create log directory
@@ -64,7 +64,7 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 echo.
 echo ============================================================
-echo Bit2book Silent Installation
+echo Bookit Silent Installation
 echo ============================================================
 echo Installation Path: %INSTALL_PATH%
 echo Quiet Mode: %QUIET_MODE%
@@ -104,7 +104,7 @@ if not defined INSTALLER_PATH (
     echo ERROR: Installer not found in %SCRIPT_DIR%
     call :log_message "ERROR: No installer found matching pattern: %INSTALLER_NAME%"
     echo.
-    echo Expected files like: "Bit2book Setup 1.0.0.exe"
+    echo Expected files like: "Bookit Setup 1.0.0.exe"
     echo.
     pause
     exit /b 2
@@ -138,12 +138,12 @@ if "%FREE_SPACE%"=="" (
 echo Verifying prerequisites...
 call :log_message "Checking for conflicting processes..."
 
-:: Kill existing Bit2book processes
-tasklist /FI "IMAGENAME eq Bit2book.exe" 2>NUL | find /I /N "Bit2book.exe">NUL
+:: Kill existing Bookit processes
+tasklist /FI "IMAGENAME eq Bookit.exe" 2>NUL | find /I /N "Bookit.exe">NUL
 if "%ERRORLEVEL%"=="0" (
-    echo Closing existing Bit2book instances...
-    call :log_message "Terminating existing Bit2book process"
-    taskkill /IM Bit2book.exe /F /T 2>NUL
+    echo Closing existing Bookit instances...
+    call :log_message "Terminating existing Bookit process"
+    taskkill /IM Bookit.exe /F /T 2>NUL
     timeout /t 2 /nobreak >nul
 )
 
@@ -171,10 +171,10 @@ if /i "%QUIET_MODE%"=="yes" (
 echo Verifying installation...
 timeout /t 3 /nobreak >nul
 
-if exist "%INSTALL_PATH%\Bit2book.exe" (
-    echo SUCCESS! Bit2book installed to: %INSTALL_PATH%
+if exist "%INSTALL_PATH%\Bookit.exe" (
+    echo SUCCESS! Bookit installed to: %INSTALL_PATH%
     call :log_message "SUCCESS: Installation completed"
-    call :log_message "Bit2book.exe verified at: %INSTALL_PATH%\Bit2book.exe"
+    call :log_message "Bookit.exe verified at: %INSTALL_PATH%\Bookit.exe"
     
     :: ============================================================
     :: POST-INSTALL SETUP
@@ -185,8 +185,8 @@ if exist "%INSTALL_PATH%\Bit2book.exe" (
     
     :: Create shortcut to desktop
     set "DESKTOP=%USERPROFILE%\Desktop"
-    if not exist "%DESKTOP%\Bit2book.lnk" (
-        powershell -Command "$s = New-Object -COM WScript.Shell; $s.CreateShortcut('%DESKTOP%\Bit2book.lnk').TargetPath = '%INSTALL_PATH%\Bit2book.exe'; $s.CreateShortcut('%DESKTOP%\Bit2book.lnk').Save()" 2>NUL
+    if not exist "%DESKTOP%\Bookit.lnk" (
+        powershell -Command "$s = New-Object -COM WScript.Shell; $s.CreateShortcut('%DESKTOP%\Bookit.lnk').TargetPath = '%INSTALL_PATH%\Bookit.exe'; $s.CreateShortcut('%DESKTOP%\Bookit.lnk').Save()" 2>NUL
         call :log_message "Desktop shortcut created"
     )
     
@@ -196,9 +196,9 @@ if exist "%INSTALL_PATH%\Bit2book.exe" (
     echo ============================================================
     echo.
     echo Next Steps:
-    echo 1. Bit2book has been installed to: %INSTALL_PATH%
+    echo 1. Bookit has been installed to: %INSTALL_PATH%
     echo 2. A shortcut has been created on your Desktop
-    echo 3. Launch Bit2book from Start Menu or Desktop shortcut
+    echo 3. Launch Bookit from Start Menu or Desktop shortcut
     echo 4. On first launch, the database will be created
     echo.
     echo For LAN setup, see: NETWORK_SETUP_GUIDE.md
@@ -213,7 +213,7 @@ if exist "%INSTALL_PATH%\Bit2book.exe" (
     exit /b 0
 ) else (
     echo ERROR: Installation verification failed!
-    echo Bit2book.exe not found at: %INSTALL_PATH%
+    echo Bookit.exe not found at: %INSTALL_PATH%
     call :log_message "ERROR: Installation verification failed"
     echo.
     echo Troubleshooting:

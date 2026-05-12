@@ -1,27 +1,27 @@
-# Bit2book Silent Installation Script (PowerShell)
+# Bookit Silent Installation Script (PowerShell)
 # 
 # Usage:
-#   .\silent-install.ps1 -InstallerPath "C:\path\to\Bit2book Setup.exe"
-#   .\silent-install.ps1 -InstallerPath "C:\path\to\Bit2book Setup.exe" -InstallPath "D:\Bit2book"
-#   .\silent-install.ps1 -InstallerPath "C:\path\to\Bit2book Setup.exe" -NoRestart
+#   .\silent-install.ps1 -InstallerPath "C:\path\to\Bookit Setup.exe"
+#   .\silent-install.ps1 -InstallerPath "C:\path\to\Bookit Setup.exe" -InstallPath "D:\Bookit"
+#   .\silent-install.ps1 -InstallerPath "C:\path\to\Bookit Setup.exe" -NoRestart
 #
 # Prerequisites:
 #   - Run as Administrator
 #   - PowerShell Execution Policy allows scripts: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 #
 # Parameters:
-#   -InstallerPath  : Full path to Bit2book Setup.exe (required)
-#   -InstallPath    : Installation directory (default: C:\Program Files\Bit2book)
+#   -InstallerPath  : Full path to Bookit Setup.exe (required)
+#   -InstallPath    : Installation directory (default: C:\Program Files\Bookit)
 #   -NoRestart      : Do not restart after installation (default: restart if needed)
 #   -Quiet          : No console output except errors (default: verbose)
-#   -LogPath        : Custom log file path (default: %APPDATA%\Bit2book\installer-logs\)
+#   -LogPath        : Custom log file path (default: %APPDATA%\Bookit\installer-logs\)
 
 param(
     [Parameter(Mandatory=$false)]
     [string]$InstallerPath,
     
     [Parameter(Mandatory=$false)]
-    [string]$InstallPath = "$env:ProgramFiles\Bit2book",
+    [string]$InstallPath = "$env:ProgramFiles\Bookit",
     
     [Parameter(Mandatory=$false)]
     [switch]$NoRestart,
@@ -38,12 +38,12 @@ param(
 # ============================================================
 
 $ScriptVersion = "1.0.0"
-$AppName = "Bit2book"
+$AppName = "Bookit"
 $MinDiskSpace = 500MB  # 500 MB minimum
 
 # Setup logging
 if (-not $LogPath) {
-    $LogDir = "$env:LOCALAPPDATA\Bit2book\installer-logs"
+    $LogDir = "$env:LOCALAPPDATA\Bookit\installer-logs"
     $LogFile = "$LogDir\install-$(Get-Date -Format 'yyyy-MM-dd-HH-mm-ss').log"
 } else {
     $LogFile = $LogPath
@@ -101,7 +101,7 @@ function Write-Header {
 # MAIN INSTALLATION LOGIC
 # ============================================================
 
-Write-Header "Bit2book Silent Installer v$ScriptVersion"
+Write-Header "Bookit Silent Installer v$ScriptVersion"
 Write-Log "Installation started by user: $env:USERNAME on machine: $env:COMPUTERNAME"
 Write-Log "Log file: $LogFile"
 
@@ -132,7 +132,7 @@ Write-Log "Searching for installer..."
 if ([string]::IsNullOrEmpty($InstallerPath)) {
     # Auto-detect in current directory
     $CurrentDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $Installers = Get-ChildItem "$CurrentDir\Bit2book Setup*.exe" -ErrorAction SilentlyContinue
+    $Installers = Get-ChildItem "$CurrentDir\Bookit Setup*.exe" -ErrorAction SilentlyContinue
     
     if ($Installers) {
         $InstallerPath = $Installers[0].FullName
@@ -140,7 +140,7 @@ if ([string]::IsNullOrEmpty($InstallerPath)) {
     } else {
         Write-Log "ERROR: Installer not found. Use -InstallerPath to specify location" "Error"
         Write-Host "ERROR: Installer not found!" -ForegroundColor Red
-        Write-Host "Usage: .\silent-install.ps1 -InstallerPath 'C:\Path\To\Bit2book Setup.exe'" -ForegroundColor Yellow
+        Write-Host "Usage: .\silent-install.ps1 -InstallerPath 'C:\Path\To\Bookit Setup.exe'" -ForegroundColor Yellow
         exit 2
     }
 } else {
@@ -202,17 +202,17 @@ Write-Log "RAM: $($RamGB.ToString('F1')) GB"
 
 Write-Header "Pre-Installation Tasks"
 
-# Stop running Bit2book instances
-Write-Log "Checking for running Bit2book processes..."
-$Bit2bookProcesses = Get-Process -Name Bit2book -ErrorAction SilentlyContinue
+# Stop running Bookit instances
+Write-Log "Checking for running Bookit processes..."
+$BookitProcesses = Get-Process -Name Bookit -ErrorAction SilentlyContinue
 
-if ($Bit2bookProcesses) {
-    Write-Log "Terminating Bit2book process..."
-    $Bit2bookProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+if ($BookitProcesses) {
+    Write-Log "Terminating Bookit process..."
+    $BookitProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
-    Write-Log "✓ Bit2book process terminated"
+    Write-Log "✓ Bookit process terminated"
 } else {
-    Write-Log "✓ No Bit2book processes running"
+    Write-Log "✓ No Bookit processes running"
 }
 
 # Create installation directory
@@ -227,7 +227,7 @@ Write-Log "✓ Installation directory ready: $InstallPath"
 # PERFORM INSTALLATION
 # ============================================================
 
-Write-Header "Installing Bit2book"
+Write-Header "Installing Bookit"
 
 Write-Log "Executing installer with parameters:"
 Write-Log "  Path: $InstallerPath"
@@ -266,26 +266,26 @@ Write-Header "Verifying Installation"
 
 Start-Sleep -Seconds 3
 
-if (Test-Path "$InstallPath\Bit2book.exe") {
-    Write-Log "✓ Bit2book.exe successfully installed"
-    $ExeSize = (Get-Item "$InstallPath\Bit2book.exe").Length / 1MB
+if (Test-Path "$InstallPath\Bookit.exe") {
+    Write-Log "✓ Bookit.exe successfully installed"
+    $ExeSize = (Get-Item "$InstallPath\Bookit.exe").Length / 1MB
     Write-Log "  Binary size: $($ExeSize.ToString('F2')) MB"
     
     # Check if shortcuts directory exists
-    $ShortcutsPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Bit2book"
+    $ShortcutsPath = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Bookit"
     if (Test-Path $ShortcutsPath) {
         Write-Log "✓ Start Menu shortcuts created"
     }
     
     # Create desktop shortcut if not exists
-    $DesktopShortcut = "$env:USERPROFILE\Desktop\Bit2book.lnk"
+    $DesktopShortcut = "$env:USERPROFILE\Desktop\Bookit.lnk"
     if (-not (Test-Path $DesktopShortcut)) {
         Write-Log "Creating desktop shortcut..."
         $Shell = New-Object -ComObject WScript.Shell
         $Shortcut = $Shell.CreateShortCut($DesktopShortcut)
-        $Shortcut.TargetPath = "$InstallPath\Bit2book.exe"
+        $Shortcut.TargetPath = "$InstallPath\Bookit.exe"
         $Shortcut.WorkingDirectory = $InstallPath
-        $Shortcut.Description = "Bit2book - Accounting Management System"
+        $Shortcut.Description = "Bookit - Accounting Management System"
         $Shortcut.Save()
         Write-Log "✓ Desktop shortcut created"
     }
@@ -298,7 +298,7 @@ if (Test-Path "$InstallPath\Bit2book.exe") {
     Write-Log "Installation completed successfully" "Success"
     
     if (-not $Quiet) {
-        Write-Host "✓ Bit2book has been installed successfully!" -ForegroundColor Green
+        Write-Host "✓ Bookit has been installed successfully!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Installation Details:" -ForegroundColor Yellow
         Write-Host "  Location: $InstallPath"
@@ -306,7 +306,7 @@ if (Test-Path "$InstallPath\Bit2book.exe") {
         Write-Host "  Log file: $LogFile"
         Write-Host ""
         Write-Host "Next Steps:" -ForegroundColor Yellow
-        Write-Host "  1. Find 'Bit2book' in Start Menu or Desktop shortcut"
+        Write-Host "  1. Find 'Bookit' in Start Menu or Desktop shortcut"
         Write-Host "  2. Click to launch the application"
         Write-Host "  3. On first launch, the database will be created"
         Write-Host ""
@@ -322,7 +322,7 @@ if (Test-Path "$InstallPath\Bit2book.exe") {
     # FAILURE
     # ============================================================
     
-    Write-Log "ERROR: Installation verification failed - Bit2book.exe not found at $InstallPath" "Error"
+    Write-Log "ERROR: Installation verification failed - Bookit.exe not found at $InstallPath" "Error"
     Write-Header "Installation Failed!"
     
     Write-Host "✗ Installation could not be verified." -ForegroundColor Red

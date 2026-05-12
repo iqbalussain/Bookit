@@ -10,7 +10,7 @@ describe('useLocalStorage', () => {
 
   it('keeps the previous state and emits an error event when a write fails', () => {
     const errorHandler = vi.fn();
-    window.addEventListener('Bit2book:storage-error', errorHandler);
+    window.addEventListener('Bookit:storage-error', errorHandler);
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('quota exceeded', 'QuotaExceededError');
     });
@@ -26,6 +26,6 @@ describe('useLocalStorage', () => {
     expect(result.current[0]).toEqual(['saved']);
     expect(errorHandler).toHaveBeenCalledTimes(1);
 
-    window.removeEventListener('Bit2book:storage-error', errorHandler);
+    window.removeEventListener('Bookit:storage-error', errorHandler);
   });
 });

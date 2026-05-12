@@ -11,7 +11,7 @@ function dispatchStorageError(key: string, isQuota: boolean) {
   const message = isQuota
     ? `Storage is full — could not save "${key}". Please export a backup to free up space.`
     : `Could not save data for "${key}". Check your browser's storage permissions.`;
-  window.dispatchEvent(new CustomEvent('Bit2book:storage-error', { detail: { key, isQuota, message } }));
+  window.dispatchEvent(new CustomEvent('Bookit:storage-error', { detail: { key, isQuota, message } }));
 }
 
 export function useLocalStorage<T>(

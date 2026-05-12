@@ -1,6 +1,6 @@
 {
-  "appId": "com.Bit2book.app",
-  "productName": "Bit2book",
+  "appId": "com.Bookit.app",
+  "productName": "Bookit",
 
   "directories": {
     "buildResources": "public",

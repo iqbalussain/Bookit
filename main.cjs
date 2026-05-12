@@ -6,7 +6,7 @@ const sqlite3 = require('sqlite3').verbose();
 let mainWindow = null;
 let db = null;
 
-const dbFileName = 'Bit2book.db';
+const dbFileName = 'Bookit.db';
 
 function getDbPath() {
   return path.join(app.getPath('userData'), dbFileName);
@@ -319,7 +319,7 @@ function setupIPC() {
     if (!filePath) {
       const result = await dialog.showSaveDialog(mainWindow, {
         title: 'Backup Database',
-        defaultPath: `Bit2book-backup-${new Date().toISOString().slice(0, 10)}.db`,
+        defaultPath: `Bookit-backup-${new Date().toISOString().slice(0, 10)}.db`,
         filters: [{ name: 'Database', extensions: ['db'] }],
       });
       if (result.canceled) return false;
@@ -375,7 +375,7 @@ function setupIPC() {
   safeHandle('export-diagnostics', async () => {
     const result = await dialog.showSaveDialog(mainWindow, {
       title: 'Export Diagnostics',
-      defaultPath: `Bit2book-diagnostics-${new Date().toISOString().slice(0, 10)}.log`,
+      defaultPath: `Bookit-diagnostics-${new Date().toISOString().slice(0, 10)}.log`,
       filters: [{ name: 'Log Files', extensions: ['log', 'txt'] }],
     });
     if (result.canceled) return { success: false, canceled: true };
@@ -442,7 +442,7 @@ if (!gotSingleInstanceLock) {
       createWindow();
     } catch (error) {
       logError('startup', error);
-      dialog.showErrorBox('Bit2book startup failed', error?.message || String(error));
+      dialog.showErrorBox('Bookit startup failed', error?.message || String(error));
       app.quit();
     }
   });

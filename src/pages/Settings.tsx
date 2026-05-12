@@ -559,7 +559,7 @@ export default function Settings() {
             <CardHeader className="py-3 px-4">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Info className="h-4 w-4 text-primary" />
-                About Bit2book
+                About Bookit
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-3">
