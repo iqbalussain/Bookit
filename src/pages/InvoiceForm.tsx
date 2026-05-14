@@ -128,7 +128,7 @@ export default function InvoiceForm() {
   // Auto-set client when project selected
   useEffect(() => {
     if (invoiceType === 'project' && selectedProject && !isEditing) {
-      setClientId(selectedProject.vendorId);
+      setClientId(selectedProject.customerId || selectedProject.vendorId);
     }
   }, [projectId, invoiceType, selectedProject, isEditing]);
 
@@ -166,6 +166,33 @@ export default function InvoiceForm() {
     ),
     [existingInvoice?.id, invoices, projectId]
   );
+
+  const projectSummary = useMemo<ProjectInvoiceSummary | undefined>(() => {
+    if (invoiceType !== 'project' || !selectedProject) return undefined;
+
+    const previousAmount = previousProjectInvoices.reduce(
+      (sum, invoice) => sum + (Number(invoice.subtotal ?? invoice.netTotal) || 0),
+      0
+    );
+    const previousPercentage = previousProjectInvoices.reduce(
+      (sum, invoice) => sum + (Number(invoice.totalPercentage) || 0),
+      0
+    );
+    const totalInvoicedAmount = previousAmount + projectInvoiceAmount;
+    const totalInvoicedPercentage = previousPercentage + currentProjectPercentage;
+
+    return {
+      projectTotalValue: selectedProject.totalValue,
+      previousPercentage,
+      previousAmount,
+      currentPercentage: currentProjectPercentage,
+      currentAmount: projectInvoiceAmount,
+      totalInvoicedPercentage,
+      totalInvoicedAmount,
+      remainingPercentage: Math.max(0, 100 - totalInvoicedPercentage),
+      remainingAmount: Math.max(0, selectedProject.totalValue - totalInvoicedAmount),
+    };
+  }, [currentProjectPercentage, invoiceType, previousProjectInvoices, projectInvoiceAmount, selectedProject]);
 
   const getPreviousActivityInvoicedPercent = (activityId: string) => {
     let percent = 0;
@@ -304,6 +331,26 @@ export default function InvoiceForm() {
     toast({ title: 'Client added', description: `${client.name} has been added.` });
   };
 
+  const handleAddSalesman = () => {
+    const name = newSalesman.name.trim();
+    if (!name) {
+      toast({ title: 'Error', description: 'Salesman name is required', variant: 'destructive' });
+      return;
+    }
+
+    const salesman = {
+      id: safeRandomUUID(),
+      name,
+      phone: newSalesman.phone.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    addSalesman(salesman);
+    setSalesmanId(salesman.id);
+    setIsAddSalesmanOpen(false);
+    setNewSalesman({ name: '', phone: '' });
+    toast({ title: 'Salesman added', description: `${salesman.name} created.` });
+  };
+
   const validateInvoice = () => {
     if (invoiceType === 'project' && !invoiceNumberPart) return 'Please provide an invoice number sequence';
     if (!clientId) return 'Please select a client';
@@ -336,6 +383,7 @@ export default function InvoiceForm() {
     discountAmount: invoiceType === 'normal' ? discountAmount : undefined,
     subtotal: invoiceType === 'normal' ? normalSubtotal : projectInvoiceAmount,
     vatTotal,
+    projectSummary: invoiceType === 'project' ? projectSummary : undefined,
     items,
     netTotal: roundMoney(netTotal),
     status: base?.status || 'draft',
@@ -404,7 +452,7 @@ export default function InvoiceForm() {
     if (!existingInvoice) return;
     const client = getClient(clientId);
     try {
-      await generatePDF({ type: 'invoice', document: existingInvoice, client, settings });
+      await generatePDF({ type: 'invoice', document: buildInvoicePayload(new Date().toISOString(), existingInvoice), client, settings });
       toast({ title: 'PDF downloaded successfully' });
     } catch (err) {
       toast({ title: 'PDF generation failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
@@ -414,7 +462,7 @@ export default function InvoiceForm() {
   const handleShare = () => {
     if (!existingInvoice) return;
     const client = getClient(clientId);
-    shareViaWhatsApp({ type: 'invoice', document: existingInvoice, client, settings });
+    shareViaWhatsApp({ type: 'invoice', document: buildInvoicePayload(new Date().toISOString(), existingInvoice), client, settings });
   };
 
   useDelayedMissingRedirect(Boolean(isEditing), Boolean(existingInvoice), '/invoices');
@@ -529,6 +577,9 @@ export default function InvoiceForm() {
                   <SelectTrigger className="flex-1 h-9"><SelectValue placeholder="Select salesman" /></SelectTrigger>
                   <SelectContent>{salesmen.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                 </Select>
+                <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setIsAddSalesmanOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
@@ -582,6 +633,38 @@ export default function InvoiceForm() {
                   </Select>
                 </div>
              </div>
+          )}
+
+          {invoiceType === 'project' && projectSummary && (
+            <div className="pt-3 border-t space-y-3">
+              <div className="grid gap-3 sm:grid-cols-5">
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase text-muted-foreground">Project Value</p>
+                  <p className="text-sm font-semibold">{formatCurrency(projectSummary.projectTotalValue)}</p>
+                </div>
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase text-muted-foreground">Previous</p>
+                  <p className="text-sm font-semibold">{formatPercent(projectSummary.previousPercentage)}</p>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(projectSummary.previousAmount)}</p>
+                </div>
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase text-muted-foreground">Current</p>
+                  <p className="text-sm font-semibold">{formatPercent(projectSummary.currentPercentage)}</p>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(projectSummary.currentAmount)}</p>
+                </div>
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase text-muted-foreground">Total Progress</p>
+                  <p className="text-sm font-semibold">{formatPercent(projectSummary.totalInvoicedPercentage)}</p>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(projectSummary.totalInvoicedAmount)}</p>
+                </div>
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <p className="text-[11px] uppercase text-muted-foreground">Remaining</p>
+                  <p className="text-sm font-semibold">{formatPercent(projectSummary.remainingPercentage)}</p>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(projectSummary.remainingAmount)}</p>
+                </div>
+              </div>
+              <Progress value={Math.min(100, Math.max(0, projectSummary.totalInvoicedPercentage))} />
+            </div>
           )}
         </CardContent>
       </Card>
@@ -745,6 +828,42 @@ export default function InvoiceForm() {
           )}
         </div>
       </div>
+
+      <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Add New Client</DialogTitle>
+            <DialogDescription>Quick add a new client</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-3">
+            <div className="space-y-1.5"><Label htmlFor="clientName" className="text-xs">Name *</Label><Input id="clientName" value={newClient.name} onChange={(e) => setNewClient({ ...newClient, name: e.target.value })} placeholder="Client name" className="h-9" /></div>
+            <div className="space-y-1.5"><Label htmlFor="clientEmail" className="text-xs">Email</Label><Input id="clientEmail" type="email" value={newClient.email} onChange={(e) => setNewClient({ ...newClient, email: e.target.value })} placeholder="email@example.com" className="h-9" /></div>
+            <div className="space-y-1.5"><Label htmlFor="clientPhone" className="text-xs">Phone</Label><Input id="clientPhone" value={newClient.phone} onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })} placeholder="+91 98765 43210" className="h-9" /></div>
+            <div className="space-y-1.5"><Label htmlFor="clientAddress" className="text-xs">Address</Label><Input id="clientAddress" value={newClient.address} onChange={(e) => setNewClient({ ...newClient, address: e.target.value })} placeholder="Address" className="h-9" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setIsAddClientOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleAddClient}>Add Client</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddSalesmanOpen} onOpenChange={setIsAddSalesmanOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Add Salesman</DialogTitle>
+            <DialogDescription>Quick add a new salesperson</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-3">
+            <div className="space-y-1.5"><Label htmlFor="salesmanName" className="text-xs">Name *</Label><Input id="salesmanName" value={newSalesman.name} onChange={(e) => setNewSalesman({ ...newSalesman, name: e.target.value })} placeholder="Salesperson name" className="h-9" /></div>
+            <div className="space-y-1.5"><Label htmlFor="salesmanPhone" className="text-xs">Phone</Label><Input id="salesmanPhone" value={newSalesman.phone} onChange={(e) => setNewSalesman({ ...newSalesman, phone: e.target.value })} placeholder="Phone number" className="h-9" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setIsAddSalesmanOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleAddSalesman}>Add Salesman</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
     </div>
   );

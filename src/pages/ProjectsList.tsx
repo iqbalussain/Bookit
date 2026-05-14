@@ -23,7 +23,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function ProjectsList() {
-  const { getVendors, projects, invoices, payments, settings } = useApp();
+  const { getClient, getVendors, projects, invoices, payments, settings } = useApp();
   const navigate = useNavigate();
   const [selectedVendor, setSelectedVendor] = useState<Client | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -67,6 +67,7 @@ export default function ProjectsList() {
 
     const tableData = vendorProjects.map(p => [
       p.name,
+      getClient(p.customerId)?.name || '-',
       p.lpoNumber || '-',
       formatCurrency(p.totalValue),
       formatCurrency(p.totalInvoicedAmount || 0),
@@ -77,7 +78,7 @@ export default function ProjectsList() {
 
     autoTable(doc, {
       startY: 50,
-      head: [['Project', 'LPO', 'Value', 'Invoiced', 'Paid', 'Balance', 'Status']],
+      head: [['Project', 'Customer', 'LPO', 'Value', 'Invoiced', 'Paid', 'Balance', 'Status']],
       body: tableData,
       theme: 'grid',
       headStyles: { fillColor: [41, 128, 185] },
@@ -94,12 +95,14 @@ export default function ProjectsList() {
     doc.text('Project Detail Report', 14, 22);
     doc.setFontSize(11);
     doc.text(`Project: ${project.name}`, 14, 30);
-    doc.text(`LPO: ${project.lpoNumber}`, 14, 36);
-    doc.text(`Total Value: ${formatCurrency(project.totalValue)}`, 14, 42);
+    doc.text(`Customer: ${getClient(project.customerId)?.name || '-'}`, 14, 36);
+    doc.text(`Vendor: ${getClient(project.vendorId)?.name || '-'}`, 14, 42);
+    doc.text(`LPO: ${project.lpoNumber}`, 14, 48);
+    doc.text(`Total Value: ${formatCurrency(project.totalValue)}`, 14, 54);
     
     // BOQ Activities Table
     doc.setFontSize(14);
-    doc.text('Activities (BOQ)', 14, 55);
+    doc.text('Activities (BOQ)', 14, 67);
     
     const boqData = project.activities.map(a => [
       a.name,
@@ -108,7 +111,7 @@ export default function ProjectsList() {
     ]);
     
     autoTable(doc, {
-      startY: 60,
+      startY: 72,
       head: [['Activity', 'Percentage', 'Value']],
       body: boqData,
       theme: 'grid',
@@ -247,6 +250,12 @@ export default function ProjectsList() {
                           <FileText className="h-4 w-4" />
                           LPO: {project.lpoNumber}
                         </div>
+                        {project.customerId && (
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="h-4 w-4" />
+                            Customer: {getClient(project.customerId)?.name || 'Unknown'}
+                          </div>
+                        )}
                         <div className="flex items-center gap-1.5">
                           <Calendar className="h-4 w-4" />
                           {formatDate(project.startDate)} - {formatDate(project.endDate)}
@@ -292,7 +301,7 @@ export default function ProjectsList() {
                   <div>
                     <SheetTitle className="text-2xl">{selectedProject.name}</SheetTitle>
                     <SheetDescription className="mt-1 flex items-center gap-2">
-                      LPO: {selectedProject.lpoNumber} • {selectedVendor?.name}
+                      LPO: {selectedProject.lpoNumber} • Customer: {getClient(selectedProject.customerId)?.name || '-'} • Vendor: {selectedVendor?.name}
                     </SheetDescription>
                   </div>
                   {getStatusBadge(selectedProject.status)}

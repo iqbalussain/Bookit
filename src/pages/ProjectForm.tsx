@@ -13,16 +13,18 @@ import type { Project, ProjectActivity, ProjectStatus } from '@/types';
 
 export default function ProjectForm() {
   const { id } = useParams();
-  const { projects, addProject, updateProject, getVendors, settings } = useApp();
+  const { projects, addProject, updateProject, getCustomers, getVendors, settings } = useApp();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const isEditing = Boolean(id);
   const vendors = getVendors();
+  const customers = getCustomers();
 
   const [formData, setFormData] = useState<Partial<Project>>({
     name: '',
     vendorId: '',
+    customerId: '',
     lpoNumber: '',
     totalValue: 0,
     startDate: new Date().toISOString().split('T')[0],
@@ -81,8 +83,8 @@ export default function ProjectForm() {
   }, [formData.totalValue]);
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.vendorId || !formData.totalValue) {
-      toast({ title: "Error", description: "Name, Vendor, and Total Value are required.", variant: "destructive" });
+    if (!formData.name || !formData.vendorId || !formData.customerId || !formData.totalValue) {
+      toast({ title: "Error", description: "Name, Customer, Vendor, and Total Value are required.", variant: "destructive" });
       return;
     }
 
@@ -143,7 +145,7 @@ export default function ProjectForm() {
         <Card>
           <CardHeader>
             <CardTitle>Project Details</CardTitle>
-            <CardDescription>Basic information and vendor association.</CardDescription>
+            <CardDescription>Basic information with customer and vendor association.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
@@ -155,18 +157,40 @@ export default function ProjectForm() {
               />
             </div>
             
-            <div className="space-y-1.5">
-              <Label>Vendor *</Label>
-              <Select value={formData.vendorId} onValueChange={(val) => setFormData({...formData, vendorId: val})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Vendor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vendors.map(v => (
-                    <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Customer *</Label>
+                <Select value={formData.customerId || ''} onValueChange={(val) => setFormData({...formData, customerId: val})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map(customer => (
+                      <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
+                    ))}
+                    {customers.length === 0 && (
+                      <SelectItem value="no-customers" disabled>No customers found</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Vendor *</Label>
+                <Select value={formData.vendorId || ''} onValueChange={(val) => setFormData({...formData, vendorId: val})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendors.map(vendor => (
+                      <SelectItem key={vendor.id} value={vendor.id}>{vendor.name}</SelectItem>
+                    ))}
+                    {vendors.length === 0 && (
+                      <SelectItem value="no-vendors" disabled>No vendors found</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

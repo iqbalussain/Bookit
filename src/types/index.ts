@@ -128,6 +128,7 @@ export interface ProjectActivity {
 export interface Project {
   id: string;
   vendorId: string;
+  customerId?: string;
   name: string;
   totalValue: number;
   lpoNumber: string;

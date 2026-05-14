@@ -103,7 +103,17 @@ export async function generatePDFBlob({ type, document: docData, client, setting
   const subtotal = Number((docData as Invoice).subtotal ?? docData.items.reduce((s, i) => s + i.total, 0)) || 0;
   const vatTotal = Number((docData as Invoice).vatTotal ?? docData.items.reduce((s, i) => s + (i.vatApplicable ? (i.vatAmount ?? 0) : 0), 0)) || 0;
   const discountAmount = Number((docData as Invoice).discountAmount) || 0;
-  const projectSummary = invoice?.projectSummary;
+  const projectSummary = invoice?.projectSummary ?? (isProjectInvoice ? {
+    projectTotalValue: Number(invoice?.projectTotalValue) || 0,
+    previousPercentage: 0,
+    previousAmount: 0,
+    currentPercentage: Number(invoice?.totalPercentage) || 0,
+    currentAmount: subtotal,
+    totalInvoicedPercentage: Number(invoice?.totalPercentage) || 0,
+    totalInvoicedAmount: subtotal,
+    remainingPercentage: Math.max(0, 100 - (Number(invoice?.totalPercentage) || 0)),
+    remainingAmount: Math.max(0, (Number(invoice?.projectTotalValue) || 0) - subtotal),
+  } : undefined);
   
   const formatMoney = (value: number) => `${currencySymbol}${(Number(value) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formatPct = (value: number) => `${(Number(value) || 0).toFixed(2).replace(/\.00$/, '')}%`;
@@ -135,6 +145,7 @@ export async function generatePDFBlob({ type, document: docData, client, setting
           margin-bottom: 25px;
           padding-bottom: 15px;
           border-bottom: 2px solid #e5e7eb;
+          page-break-inside: avoid;
         }
         
         .logo-section { 
@@ -275,6 +286,10 @@ export async function generatePDFBlob({ type, document: docData, client, setting
           border-collapse: collapse; 
           margin-bottom: 20px;
           page-break-inside: auto;
+        }
+
+        .items-table thead {
+          display: table-header-group;
         }
         
         .items-table tr {
@@ -453,6 +468,33 @@ export async function generatePDFBlob({ type, document: docData, client, setting
           font-size: 10px;
           color: #9ca3af;
         }
+
+        .signature-section {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 22px;
+          page-break-inside: avoid;
+        }
+
+        .signature-box {
+          width: 210px;
+          text-align: center;
+        }
+
+        .signature-image {
+          max-width: 180px;
+          height: 70px;
+          object-fit: contain;
+          margin-bottom: 8px;
+        }
+
+        .signature-line {
+          border-top: 1px solid #9ca3af;
+          padding-top: 6px;
+          font-size: 10px;
+          font-weight: 600;
+          color: #374151;
+        }
         
         /* Page Break Handling */
         @media print {
@@ -550,7 +592,7 @@ export async function generatePDFBlob({ type, document: docData, client, setting
               <td class="col-sno">${index + 1}</td>
               ${isProjectInvoice ? `
                 <td class="col-description"><div class="item-desc">${escapeHtml(item.description || item.name)}</div></td>
-                <td class="numeric col-qty">${formatPct(item.percentage || 0)}</td>
+                <td class="numeric col-qty">${formatPct(item.completionPercentage || item.percentage || 0)}</td>
                 <td class="numeric col-amount">${formatMoney(item.total)}</td>
               ` : `
                 <td class="col-description">
@@ -624,6 +666,13 @@ export async function generatePDFBlob({ type, document: docData, client, setting
           <p>${escapeHtml(docData.terms)}</p>
         </div>
         ` : ''}
+
+        <div class="signature-section">
+          <div class="signature-box">
+            ${settings.signature ? `<img src="${settings.signature}" class="signature-image" alt="Authorized signature" crossorigin="anonymous">` : '<div style="height: 70px;"></div>'}
+            <div class="signature-line">Authorized Signature</div>
+          </div>
+        </div>
         
         <div class="footer">
           Thank you for your business!
@@ -677,7 +726,7 @@ export async function generatePDFBlob({ type, document: docData, client, setting
     
     const worker = html2pdf()
       .set({
-        margin: [3, 3, 3, 3 ],
+        margin: [22, 3, 8, 3],
         filename: `${type}-${docData.number}.pdf`,
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: {
@@ -695,7 +744,27 @@ export async function generatePDFBlob({ type, document: docData, client, setting
         },
         pagebreak: { mode: ['css', 'legacy'] }
       })
-      .from(pdfElement);
+      .from(pdfElement)
+      .toPdf()
+      .get('pdf')
+      .then((pdf: any) => {
+        const pageCount = pdf.internal.getNumberOfPages();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+
+        for (let page = 2; page <= pageCount; page += 1) {
+          pdf.setPage(page);
+          pdf.setFillColor(255, 255, 255);
+          pdf.rect(0, 0, pageWidth, 18, 'F');
+          pdf.setFontSize(9);
+          pdf.setTextColor(37, 99, 235);
+          pdf.text(settings.name || 'Your Business', 10, 8);
+          pdf.setFontSize(8);
+          pdf.setTextColor(55, 65, 81);
+          pdf.text(`${isProjectInvoice ? 'Project Invoice' : type === 'invoice' ? 'Invoice' : 'Quotation'}: ${docData.number}`, pageWidth - 10, 8, { align: 'right' });
+          pdf.setDrawColor(229, 231, 235);
+          pdf.line(10, 13, pageWidth - 10, 13);
+        }
+      });
 
     return await worker.outputPdf('blob');
   } finally {

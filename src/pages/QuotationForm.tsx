@@ -154,6 +154,26 @@ export default function QuotationForm() {
     toast({ title: 'Client added', description: `${client.name} has been added.` });
   };
 
+  const handleAddSalesman = () => {
+    const name = newSalesman.name.trim();
+    if (!name) {
+      toast({ title: 'Error', description: 'Salesman name required', variant: 'destructive' });
+      return;
+    }
+
+    const salesman = {
+      id: safeRandomUUID(),
+      name,
+      phone: newSalesman.phone.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    addSalesman(salesman);
+    setSalesmanId(salesman.id);
+    setIsAddSalesmanOpen(false);
+    setNewSalesman({ name: '', phone: '' });
+    toast({ title: 'Salesman added', description: `${salesman.name} created.` });
+  };
+
   const handleSave = (newStatus?: QuotationStatus) => {
     if (!clientId) {
       toast({ title: 'Error', description: 'Please select a client', variant: 'destructive' });
@@ -508,15 +528,7 @@ export default function QuotationForm() {
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setIsAddSalesmanOpen(false)}>Cancel</Button>
-            <Button size="sm" onClick={() => {
-              if (!newSalesman.name.trim()) return toast({ title: 'Error', description: 'Salesman name required', variant: 'destructive' });
-              const s = { id: safeRandomUUID(), name: newSalesman.name, phone: newSalesman.phone, createdAt: new Date().toISOString() };
-              addSalesman(s);
-              setSalesmanId(s.id);
-              setIsAddSalesmanOpen(false);
-              setNewSalesman({ name: '', phone: '' });
-              toast({ title: 'Salesman added', description: `${s.name} created.` });
-            }}>Add Salesman</Button>
+            <Button size="sm" onClick={handleAddSalesman}>Add Salesman</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
