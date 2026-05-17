@@ -6,6 +6,8 @@ import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthGuard } from "@/components/AuthGuard";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +15,7 @@ import { setConflictHandler } from "@/lib/apiClient";
 
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
 import ProjectsList from "./pages/ProjectsList";
 import ProjectForm from "./pages/ProjectForm";
 
@@ -90,16 +93,22 @@ const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <AppProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <StorageErrorListener />
-
-            {/* IMPORTANT: HashRouter for Electron */}
-            <HashRouter>
-              <AppLayout>
-                <Routes>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <StorageErrorListener />
+          {/* IMPORTANT: HashRouter for Electron */}
+          <HashRouter>
+            <AuthProvider>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route
+                  path="*"
+                  element={
+                    <AuthGuard>
+                      <AppProvider>
+                        <AppLayout>
+                          <Routes>
                     <Route path="/" element={<ErrorBoundary inline><Dashboard /></ErrorBoundary>} />
                     <Route path="/projects" element={<ErrorBoundary inline><ProjectsList /></ErrorBoundary>} />
                     <Route path="/projects/new" element={<ErrorBoundary inline><ProjectForm /></ErrorBoundary>} />
@@ -135,12 +144,16 @@ const App = () => (
                     <Route path="/day-book" element={<ErrorBoundary inline><DayBook /></ErrorBoundary>} />
                     <Route path="/settings" element={<ErrorBoundary inline><Settings /></ErrorBoundary>} />
                     <Route path="*" element={<NotFound />} />
-                  </Routes>
-              </AppLayout>
-            </HashRouter>
-
-          </TooltipProvider>
-        </AppProvider>
+                          </Routes>
+                        </AppLayout>
+                      </AppProvider>
+                    </AuthGuard>
+                  }
+                />
+              </Routes>
+            </AuthProvider>
+          </HashRouter>
+        </TooltipProvider>
       </ErrorBoundary>
     </QueryClientProvider>
   </ThemeProvider>
