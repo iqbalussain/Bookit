@@ -1,6 +1,9 @@
-import React, { createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback, useMemo, useEffect, useRef, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { useRemoteCollection } from '@/hooks/useRemoteCollection';
+import { useSupabaseTable } from '@/hooks/useSupabaseTable';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { fromDb, toDb } from '@/lib/dbCase';
 import type {
   Account,
   AuditEntry,
@@ -149,25 +152,86 @@ const recalculateProjects = (projects: Project[], invoices: Invoice[]): Project[
   });
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [clients, setClients] = useRemoteCollection<Client>('clients', 'app_clients', []);
-  const [quotations, setQuotations] = useRemoteCollection<Quotation>('quotations', 'app_quotations', []);
-  const [invoices, setInvoices] = useRemoteCollection<Invoice>('invoices', 'app_invoices', []);
-  const [purchaseInvoices, setPurchaseInvoices] = useRemoteCollection<PurchaseInvoice>(
-    'purchaseInvoices',
-    'app_purchase_invoices',
-    []
-  );
-  const [payments, setPayments] = useRemoteCollection<Payment>('payments', 'app_payments', []);
-  const [projects, setProjects] = useRemoteCollection<Project>('projects', 'app_projects', []);
-  const [items, setItems] = useLocalStorage<Item[]>('app_items', []);
-  const [salesmen, setSalesmen] = useLocalStorage<Salesman[]>('app_salesmen', []);
-  const [accounts, setAccounts] = useLocalStorage<Account[]>('app_accounts', DEFAULT_ACCOUNTS);
-  const [vouchers, setVouchers] = useLocalStorage<Voucher[]>('app_vouchers', []);
-  const [journalEntries, setJournalEntries] = useLocalStorage<JournalEntry[]>('app_journal_entries', []);
-  const [settings, setSettings] = useLocalStorage<BusinessSettings>('app_settings', defaultSettings);
+  const { session, user } = useAuth();
+  const ready = !!user;
+
+  const [clients, setClients] = useSupabaseTable<Client>('clients', { ready, initial: [] });
+  const [quotations, setQuotations] = useSupabaseTable<Quotation>('quotations', { ready, jsonbCols: ['items'], initial: [] });
+  const [invoices, setInvoices] = useSupabaseTable<Invoice>('invoices', { ready, jsonbCols: ['items', 'project_summary'], initial: [] });
+  const [purchaseInvoices, setPurchaseInvoices] = useSupabaseTable<PurchaseInvoice>('purchase_invoices', { ready, jsonbCols: ['items'], initial: [] });
+  const [payments, setPayments] = useSupabaseTable<Payment>('payments', { ready, initial: [] });
+  const [projects, setProjects] = useSupabaseTable<Project>('projects', { ready, jsonbCols: ['activities', 'linked_invoice_ids'], initial: [] });
+  const [items, setItems] = useSupabaseTable<Item>('items', { ready, initial: [] });
+  const [salesmen, setSalesmen] = useSupabaseTable<Salesman>('salesmen', { ready, initial: [] });
+  const [vouchers, setVouchers] = useSupabaseTable<Voucher>('vouchers', { ready, jsonbCols: ['details'], initial: [] });
+  const [journalEntries, setJournalEntries] = useSupabaseTable<JournalEntry>('journal_entries', { ready, jsonbCols: ['lines'], initial: [] });
+  const [companies, setCompanies] = useSupabaseTable<Company>('companies', {
+    ready,
+    initial: [],
+    onFirstLoad: async (rows) => {
+      if (rows.length === 0 && user) {
+        await (supabase.from as any)('companies').insert({ id: 'default', name: 'Default Company' });
+      }
+    },
+  });
+  const [accounts, setAccounts] = useSupabaseTable<Account>('accounts', {
+    ready,
+    initial: DEFAULT_ACCOUNTS,
+    onFirstLoad: async (rows) => {
+      if (rows.length === 0 && user) {
+        await (supabase.from as any)('accounts').insert(DEFAULT_ACCOUNTS.map((a) => toDb(a)));
+      }
+    },
+  });
+
+  // Audit log: local only (low value to round-trip)
   const [auditLog, setAuditLog] = useLocalStorage<AuditEntry[]>('app_audit_log', []);
-  const [companies, setCompanies] = useLocalStorage<Company[]>('app_companies', defaultCompanies);
   const [selectedCompanyId, setSelectedCompanyId] = useLocalStorage<string>('app_selected_company', 'default');
+
+  // Settings: singleton row per user
+  const [settings, setSettingsState] = useState<BusinessSettings>(defaultSettings);
+  const settingsLoadedRef = useRef(false);
+  const settingsRowIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await (supabase.from as any)('business_settings').select('*').limit(1).maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        console.warn('[supabase] settings load:', error.message);
+      }
+      if (data) {
+        settingsRowIdRef.current = data.id;
+        setSettingsState({ ...defaultSettings, ...fromDb<BusinessSettings>(data) });
+      }
+      settingsLoadedRef.current = true;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready]);
+
+  const setSettings: React.Dispatch<React.SetStateAction<BusinessSettings>> = useCallback((next) => {
+    setSettingsState((prev) => {
+      const computed = typeof next === 'function' ? (next as (p: BusinessSettings) => BusinessSettings)(prev) : next;
+      if (ready && settingsLoadedRef.current) {
+        const payload: any = toDb(computed);
+        if (settingsRowIdRef.current) payload.id = settingsRowIdRef.current;
+        (supabase.from as any)('business_settings')
+          .upsert(payload, { onConflict: 'id' })
+          .select('id')
+          .single()
+          .then(({ data, error }: any) => {
+            if (error) console.warn('[supabase] settings upsert:', error.message);
+            else if (data?.id) settingsRowIdRef.current = data.id;
+          });
+      }
+      return computed;
+    });
+  }, [ready]);
+
   const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
   const accountBalances = useMemo(
