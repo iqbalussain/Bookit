@@ -218,15 +218,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const computed = typeof next === 'function' ? (next as (p: BusinessSettings) => BusinessSettings)(prev) : next;
       if (ready && settingsLoadedRef.current) {
         const payload: any = toDb(computed);
-        if (settingsRowIdRef.current) payload.id = settingsRowIdRef.current;
-        (supabase.from as any)('business_settings')
-          .upsert(payload, { onConflict: 'id' })
-          .select('id')
-          .single()
-          .then(({ data, error }: any) => {
-            if (error) console.warn('[supabase] settings upsert:', error.message);
-            else if (data?.id) settingsRowIdRef.current = data.id;
-          });
+        const existingId = settingsRowIdRef.current;
+        if (existingId) {
+          (supabase.from as any)('business_settings')
+            .update(payload)
+            .eq('id', existingId)
+            .then(({ error }: any) => {
+              if (error) console.warn('[supabase] settings update:', error.message);
+            });
+        } else {
+          (supabase.from as any)('business_settings')
+            .insert(payload)
+            .select('id')
+            .single()
+            .then(({ data, error }: any) => {
+              if (error) console.warn('[supabase] settings insert:', error.message);
+              else if (data?.id) settingsRowIdRef.current = data.id;
+            });
+        }
       }
       return computed;
     });
