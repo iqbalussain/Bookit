@@ -1,6 +1,6 @@
-# Bit2book LAN Network Setup Guide
+# BookIt LAN Network Setup Guide
 
-This guide explains how to set up Bit2book to share data across multiple PCs on your local network (LAN).
+This guide explains how to set up BookIt to share data across multiple PCs on your local network (LAN).
 
 ---
 
@@ -28,10 +28,10 @@ The server PC holds the centralized database that all client PCs connect to.
 **On your main/server PC:**
 
 1. Open **PowerShell** or **Command Prompt** as Administrator.
-1. Navigate to the Bit2book server folder:
+1. Navigate to the BookIt server folder:
 
 ```bash
-cd C:\path\to\Bit2book\server
+cd C:\path\to\bookit\server
 ```
 
 1. Install dependencies (run once):
@@ -52,7 +52,7 @@ npm start
 IQBook LAN Server running on http://192.168.1.50:4000
 ```
 
-1. Keep this window **open** while using Bit2book across the network.
+1. Keep this window **open** while using BookIt across the network.
 
 ### Finding Your Server IP Address
 
@@ -106,15 +106,15 @@ Once the server is running, connect other PCs to it.
 
 **On each client PC:**
 
-1. Install Bit2book normally using the `.exe` installer.
+1. Install BookIt normally using the `.exe` installer.
 1. Complete the installation.
-1. Run Bit2book.
+1. Run BookIt.
 
 ### Configure Connection
 
-**Inside Bit2book application:**
+**Inside BookIt application:**
 
-1. Open Bit2book on the client PC.
+1. Open BookIt on the client PC.
 1. Go to **Settings** (gear icon, top navigation).
 1. Click **Network / Multi-user**.
 1. Select mode: **Client**.
@@ -130,11 +130,11 @@ http://192.168.1.50:4000
    - ✅ Success → "Connection verified"
    - ❌ Failed → Check server URL and firewall (see Troubleshooting)
 1. Click **Save**.
-1. Bit2book will restart and sync with the server.
+1. BookIt will restart and sync with the server.
 
 ### Verify Connection
 
-After saving, Bit2book should:
+After saving, BookIt should:
 
 - Display **Client mode** in Settings
 - Sync data with the server PC
@@ -147,7 +147,7 @@ After saving, Bit2book should:
 
 Repeat **Step 3** on each additional PC:
 
-- Install Bit2book
+- Install BookIt
 - Open Settings → Network
 - Select **Client** mode
 - Enter the server URL
@@ -170,7 +170,7 @@ C:\Users\{YourUsername}\.iqbook
 To change it, set an environment variable before starting the server:
 
 ```bash
-set IQBOOK_DATA_DIR=D:\Bit2bookData
+set IQBOOK_DATA_DIR=D:\BookItData
 npm start
 ```
 
@@ -197,7 +197,7 @@ Then use: `http://192.168.1.50:5000` on client PCs.
 
 ### Scenario 2: New PC Joins Mid-Day
 
-- Install Bit2book on the new PC
+- Install BookIt on the new PC
 - Connect to the server
 - All previous data syncs automatically
 
@@ -208,7 +208,7 @@ Then use: `http://192.168.1.50:5000` on client PCs.
 1. Open Settings → Network.
 1. Change mode from **Client** to **Standalone** (or back).
 1. Click Save.
-1. Bit2book restarts with the new mode.
+1. BookIt restarts with the new mode.
 
 ---
 
@@ -228,7 +228,7 @@ Then use: `http://192.168.1.50:5000` on client PCs.
 - If not, restart the server:
 
 ```bash
-cd C:\path\to\Bit2book\server
+cd C:\path\to\bookit\server
 npm start
 ```
 
@@ -257,7 +257,7 @@ ping 192.168.1.50
 
 - Wait 5-10 seconds (sync happens in background)
 - Check if you're in **Client** mode (not Standalone)
-- Restart Bit2book
+- Restart BookIt
 - Check server logs for errors
 
 ### Issue: Data shows differently on different PCs

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,61 +14,55 @@ import { setConflictHandler } from "@/lib/apiClient";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
-import QuotationsList from "./pages/QuotationsList";
-import QuotationForm from "./pages/QuotationForm";
-import InvoicesList from "./pages/InvoicesList";
-import InvoiceForm from "./pages/InvoiceForm";
-import PurchaseInvoicesList from "./pages/PurchaseInvoicesList";
-import PurchaseInvoiceForm from "./pages/PurchaseInvoiceForm";
-import ClientsList from "./pages/ClientsList";
-import ClientStatement from "./pages/ClientStatement";
-import PaymentForm from "./pages/PaymentForm";
-import PaymentsReceipts from "./pages/PaymentsReceipts";
-import VoucherDashboard from "./pages/VoucherDashboard";
-import ExpensesVoucher from "./pages/ExpensesVoucher";
-import ContraVoucher from "./pages/ContraVoucher";
-import LoanGivenVoucher from "./pages/LoanGivenVoucher";
-import LoanReceivedVoucher from "./pages/LoanReceivedVoucher";
-import JournalVoucher from "./pages/JournalVoucher";
-import ItemsList from "./pages/ItemsList";
-import ItemReport from "./pages/reports/ItemReport";
-import VatReturn from "./pages/reports/VatReturn";
-import ChartOfAccounts from "./pages/ChartOfAccounts";
-import AccountStatement from "./pages/AccountStatement";
-import Settings from "./pages/Settings";
-import ProfitAndLoss from "./pages/reports/ProfitAndLoss";
-import BalanceSheet from "./pages/reports/BalanceSheet";
-import TrialBalance from "./pages/reports/TrialBalance";
-import AgingReport from "./pages/reports/AgingReport";
-import DayBook from "./pages/DayBook";
+const QuotationsList = lazy(() => import("./pages/QuotationsList"));
+const QuotationForm = lazy(() => import("./pages/QuotationForm"));
+const InvoicesList = lazy(() => import("./pages/InvoicesList"));
+const InvoiceForm = lazy(() => import("./pages/InvoiceForm"));
+const PurchaseInvoicesList = lazy(() => import("./pages/PurchaseInvoicesList"));
+const PurchaseInvoiceForm = lazy(() => import("./pages/PurchaseInvoiceForm"));
+const ClientsList = lazy(() => import("./pages/ClientsList"));
+const ClientStatement = lazy(() => import("./pages/ClientStatement"));
+const PaymentForm = lazy(() => import("./pages/PaymentForm"));
+const PaymentsReceipts = lazy(() => import("./pages/PaymentsReceipts"));
+const VoucherDashboard = lazy(() => import("./pages/VoucherDashboard"));
+const ExpensesVoucher = lazy(() => import("./pages/ExpensesVoucher"));
+const ContraVoucher = lazy(() => import("./pages/ContraVoucher"));
+const LoanGivenVoucher = lazy(() => import("./pages/LoanGivenVoucher"));
+const LoanReceivedVoucher = lazy(() => import("./pages/LoanReceivedVoucher"));
+const JournalVoucher = lazy(() => import("./pages/JournalVoucher"));
+const ItemsList = lazy(() => import("./pages/ItemsList"));
+const ItemReport = lazy(() => import("./pages/reports/ItemReport"));
+const VatReturn = lazy(() => import("./pages/reports/VatReturn"));
+const ChartOfAccounts = lazy(() => import("./pages/ChartOfAccounts"));
+const AccountStatement = lazy(() => import("./pages/AccountStatement"));
+const Settings = lazy(() => import("./pages/Settings"));
+const ProfitAndLoss = lazy(() => import("./pages/reports/ProfitAndLoss"));
+const BalanceSheet = lazy(() => import("./pages/reports/BalanceSheet"));
+const TrialBalance = lazy(() => import("./pages/reports/TrialBalance"));
+const AgingReport = lazy(() => import("./pages/reports/AgingReport"));
 
 const queryClient = new QueryClient();
 
 function StorageErrorListener() {
   const { toast } = useToast();
-  const toastRef = useRef(toast);
-
-  useEffect(() => {
-    toastRef.current = toast;
-  }, [toast]);
 
   useEffect(() => {
     const handler = (e: Event) => {
       const { message, isQuota } = (e as CustomEvent).detail ?? {};
-      toastRef.current({
+      toast({
         title: isQuota ? "Storage full" : "Could not save data",
         description: message ?? "An unexpected storage error occurred.",
         variant: "destructive",
       });
     };
 
-    window.addEventListener("Bit2book:storage-error", handler);
-    return () => window.removeEventListener("Bit2book:storage-error", handler);
-  }, []);
+    window.addEventListener("bookit:storage-error", handler);
+    return () => window.removeEventListener("bookit:storage-error", handler);
+  }, [toast]);
 
   useEffect(() => {
     setConflictHandler((collection) => {
-      toastRef.current({
+      toast({
         title: "Record changed by another user",
         description: `Your edit on ${collection.replace(
           "/api/records/",
@@ -77,9 +71,7 @@ function StorageErrorListener() {
         variant: "destructive",
       });
     });
-
-    return () => setConflictHandler(null);
-  }, []);
+  }, [toast]);
 
   return null;
 }
@@ -97,7 +89,8 @@ const App = () => (
             {/* IMPORTANT: HashRouter for Electron */}
             <HashRouter>
               <AppLayout>
-                <Routes>
+                <Suspense fallback={<div className="flex items-center justify-center h-full w-full">Loading…</div>}>
+                  <Routes>
                     <Route path="/" element={<ErrorBoundary inline><Dashboard /></ErrorBoundary>} />
                     <Route path="/quotations" element={<ErrorBoundary inline><QuotationsList /></ErrorBoundary>} />
                     <Route path="/quotations/new" element={<ErrorBoundary inline><QuotationForm /></ErrorBoundary>} />
@@ -127,10 +120,10 @@ const App = () => (
                     <Route path="/reports/aging" element={<ErrorBoundary inline><AgingReport /></ErrorBoundary>} />
                     <Route path="/reports/items" element={<ErrorBoundary inline><ItemReport /></ErrorBoundary>} />
                     <Route path="/reports/vat" element={<ErrorBoundary inline><VatReturn /></ErrorBoundary>} />
-                    <Route path="/day-book" element={<ErrorBoundary inline><DayBook /></ErrorBoundary>} />
                     <Route path="/settings" element={<ErrorBoundary inline><Settings /></ErrorBoundary>} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                </Suspense>
               </AppLayout>
             </HashRouter>
 

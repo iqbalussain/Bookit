@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,8 +18,6 @@ import { currencySymbols, type PurchaseInvoice, type LineItem, type PurchaseInvo
 import { Plus, Trash2, Save, ArrowLeft, Edit2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ItemPicker } from '@/components/ItemPicker';
-import { safeRandomUUID } from '@/lib/uuid';
-import { useDelayedMissingRedirect } from '@/hooks/useDelayedMissingRedirect';
 
 export default function PurchaseInvoiceForm() {
   const { id } = useParams();
@@ -44,7 +42,7 @@ export default function PurchaseInvoiceForm() {
   const [notes, setNotes] = useState(existing?.notes || '');
   const [terms, setTerms] = useState(existing?.terms || '');
   const [items, setItems] = useState<LineItem[]>(
-    existing?.items || [{ id: safeRandomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]
+    existing?.items || [{ id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]
   );
 
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
@@ -95,8 +93,8 @@ export default function PurchaseInvoiceForm() {
   };
 
   const addItem = () => {
-    if (isMobile) { setTempItem({ id: safeRandomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }); setIsAddItemSheetOpen(true); }
-    else { setItems((prev) => [...prev, { id: safeRandomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]); }
+    if (isMobile) { setTempItem({ id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }); setIsAddItemSheetOpen(true); }
+    else { setItems((prev) => [...prev, { id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]); }
   };
 
   const saveMobileItem = () => {
@@ -122,7 +120,7 @@ export default function PurchaseInvoiceForm() {
       toast({ title: 'Bill updated', description: `${existing.number} updated.` });
     } else {
       const pi: PurchaseInvoice = {
-        id: safeRandomUUID(), number: generatePurchaseInvoiceNumber(), vendorId,
+        id: crypto.randomUUID(), number: generatePurchaseInvoiceNumber(), vendorId,
         items, netTotal: grandTotal, status: 'draft', dueDate, notes, terms, createdAt: now, updatedAt: now,
       };
       addPurchaseInvoice(pi);
@@ -150,7 +148,7 @@ export default function PurchaseInvoiceForm() {
     }
   };
 
-  useDelayedMissingRedirect(Boolean(isEditing), Boolean(existing), '/purchases');
+  useEffect(() => { if (isEditing && !existing) navigate('/purchases'); }, [isEditing, existing, navigate]);
 
   return (
     <div className="space-y-3 pb-24 lg:pb-4">

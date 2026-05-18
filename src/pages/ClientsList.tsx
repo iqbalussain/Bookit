@@ -22,7 +22,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { Client, PartyType } from '@/types';
 import { Plus, Search, Users, Trash2, Edit, Phone, Mail, MapPin, ChevronRight, FileText } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { safeRandomUUID } from '@/lib/uuid';
 
 export default function ClientsList() {
   const { clients, addClient, updateClient, deleteClient } = useApp();
@@ -83,7 +82,7 @@ export default function ClientsList() {
       updateClient({ ...editingClient, ...clientData });
       toast({ title: 'Client updated', description: `${formData.name} has been updated.` });
     } else {
-      const newClient: Client = { id: safeRandomUUID(), ...clientData, createdAt: new Date().toISOString() };
+      const newClient: Client = { id: crypto.randomUUID(), ...clientData, createdAt: new Date().toISOString() };
       addClient(newClient);
       toast({ title: 'Client added', description: `${formData.name} has been added.` });
     }

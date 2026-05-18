@@ -9,7 +9,7 @@ function dispatchStorageError(key: string, isQuota: boolean) {
   const message = isQuota
     ? `Storage is full — could not save "${key}". Please export a backup to free up space.`
     : `Could not save data for "${key}". Check your browser's storage permissions.`;
-  window.dispatchEvent(new CustomEvent('Bit2book:storage-error', { detail: { key, isQuota, message } }));
+  window.dispatchEvent(new CustomEvent('bookit:storage-error', { detail: { key, isQuota, message } }));
 }
 
 export function useLocalStorage<T>(
@@ -32,11 +32,9 @@ export function useLocalStorage<T>(
   const setValue = useCallback(
     (value: T | ((prev: T) => T)) => {
       try {
-        setStoredValue((prev) => {
-          const newValue = value instanceof Function ? value(prev) : value;
-          window.localStorage.setItem(key, JSON.stringify(newValue));
-          return newValue;
-        });
+        const newValue = value instanceof Function ? value(storedValue) : value;
+        window.localStorage.setItem(key, JSON.stringify(newValue));
+        setStoredValue(newValue);
       } catch (error) {
         console.error(`[localStorage] Error writing key "${key}":`, error);
         const isQuota =
@@ -45,7 +43,7 @@ export function useLocalStorage<T>(
         dispatchStorageError(key, isQuota);
       }
     },
-    [key],
+    [key, storedValue],
   );
 
   useEffect(() => {

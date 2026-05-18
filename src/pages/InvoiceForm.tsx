@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,8 +22,6 @@ import { Plus, Trash2, Save, ArrowLeft, Send, Download, Share2, Edit2, CreditCar
 import { generatePDF, shareViaWhatsApp } from '@/lib/documentUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ItemPicker } from '@/components/ItemPicker';
-import { safeRandomUUID } from '@/lib/uuid';
-import { useDelayedMissingRedirect } from '@/hooks/useDelayedMissingRedirect';
 
 export default function InvoiceForm() {
   const { id } = useParams();
@@ -55,7 +53,7 @@ export default function InvoiceForm() {
   const [notes, setNotes] = useState(existingInvoice?.notes || sourceQuotation?.notes || '');
   const [terms, setTerms] = useState(existingInvoice?.terms || sourceQuotation?.terms || 'Payment terms: Net 30 days');
   const [items, setItems] = useState<LineItem[]>(
-    existingInvoice?.items || sourceQuotation?.items || [{ id: safeRandomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]
+    existingInvoice?.items || sourceQuotation?.items || [{ id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]
   );
 
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
@@ -116,10 +114,10 @@ export default function InvoiceForm() {
 
   const addItem = () => {
     if (isMobile) {
-      setTempItem({ id: safeRandomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 });
+      setTempItem({ id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 });
       setIsAddItemSheetOpen(true);
     } else {
-      setItems((prev) => [...prev, { id: safeRandomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]);
+      setItems((prev) => [...prev, { id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]);
     }
   };
 
@@ -143,7 +141,7 @@ export default function InvoiceForm() {
 
   const handleAddClient = () => {
     if (!newClient.name.trim()) { toast({ title: 'Error', description: 'Client name is required', variant: 'destructive' }); return; }
-    const client: Client = { id: safeRandomUUID(), ...newClient, type: 'customer', createdAt: new Date().toISOString() };
+    const client: Client = { id: crypto.randomUUID(), ...newClient, type: 'customer', createdAt: new Date().toISOString() };
     addClient(client);
     setClientId(client.id);
     setIsAddClientOpen(false);
@@ -183,7 +181,7 @@ export default function InvoiceForm() {
       toast({ title: 'Invoice updated', description: `${existingInvoice.number} has been updated.` });
     } else {
       const newInvoice: Invoice = {
-        id: safeRandomUUID(), number: generateInvoiceNumber(), clientId,
+        id: crypto.randomUUID(), number: generateInvoiceNumber(), clientId,
           quotationId: sourceQuotation?.id, items, netTotal: grandTotal, status: 'draft', dueDate, notes, terms, salesmanId,
           createdAt: now, updatedAt: now,
       };
@@ -235,7 +233,7 @@ export default function InvoiceForm() {
     shareViaWhatsApp({ type: 'invoice', document: existingInvoice, client, settings });
   };
 
-  useDelayedMissingRedirect(Boolean(isEditing), Boolean(existingInvoice), '/invoices');
+  useEffect(() => { if (isEditing && !existingInvoice) navigate('/invoices'); }, [isEditing, existingInvoice, navigate]);
 
   const statusColors: Record<InvoiceStatus, string> = {
     draft: 'bg-muted text-muted-foreground',
@@ -475,7 +473,7 @@ export default function InvoiceForm() {
             <Button variant="outline" size="sm" onClick={() => setIsAddSalesmanOpen(false)}>Cancel</Button>
             <Button size="sm" onClick={() => {
               if (!newSalesman.name.trim()) return toast({ title: 'Error', description: 'Salesman name required', variant: 'destructive' });
-              const s = { id: safeRandomUUID(), name: newSalesman.name, phone: newSalesman.phone, createdAt: new Date().toISOString() };
+              const s = { id: crypto.randomUUID(), name: newSalesman.name, phone: newSalesman.phone, createdAt: new Date().toISOString() };
               addSalesman(s);
               setSalesmanId(s.id);
               setIsAddSalesmanOpen(false);

@@ -20,7 +20,6 @@ interface ElectronAPI {
   getDbPath: () => Promise<string>;
   backup: (destinationPath: string) => Promise<void>;
   restore: (backupPath: string) => Promise<void>;
-  logRendererError: (payload: { message?: string; stack?: string; componentStack?: string; context?: string }) => Promise<boolean>;
 }
 
 declare global {

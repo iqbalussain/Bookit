@@ -1,5 +1,4 @@
 import type { Invoice, JournalEntry, JournalLine } from '@/types';
-import { safeRandomUUID } from '@/lib/uuid';
 
 const SALES_INVOICE_REFERENCE_TYPE = 'sales_invoice' as const;
 
@@ -40,7 +39,7 @@ export const buildSalesInvoicePostingEntry = (invoice: Invoice): JournalEntry =>
   const version = getInvoicePostingVersion(invoice);
 
   return {
-    id: safeRandomUUID(),
+    id: crypto.randomUUID(),
     date: now,
     reference: invoice.number,
     referenceType: SALES_INVOICE_REFERENCE_TYPE,
@@ -61,7 +60,7 @@ export const buildSalesInvoiceReversalEntry = (
   const version = getInvoicePostingVersion(invoice);
 
   return {
-    id: safeRandomUUID(),
+    id: crypto.randomUUID(),
     date: now,
     reference: `${invoice.number}-REV`,
     referenceType: SALES_INVOICE_REFERENCE_TYPE,

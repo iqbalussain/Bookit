@@ -10,9 +10,9 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       config: {
-        name: "Bit2book",
+        name: "BookIt",
         authors: "Iqbal Ussain",
-        exe: 'Bit2book.exe',
+        exe: 'BookIt.exe',
         // Installer icon
         iconUrl: 'https://via.placeholder.com/256',
         // Setup icon  

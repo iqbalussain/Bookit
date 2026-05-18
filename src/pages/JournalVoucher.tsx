@@ -13,10 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Plus, Trash2, Save, BookOpen } from 'lucide-react';
 import type { JournalLine, Voucher } from '@/types';
 import { currencySymbols } from '@/types';
-import { safeRandomUUID } from '@/lib/uuid';
 
 interface RowState { id: string; accountId: string; debit: number; credit: number; description: string; }
-const newRow = (): RowState => ({ id: safeRandomUUID(), accountId: '', debit: 0, credit: 0, description: '' });
+const newRow = (): RowState => ({ id: crypto.randomUUID(), accountId: '', debit: 0, credit: 0, description: '' });
 
 export default function JournalVoucher() {
   const navigate = useNavigate();
@@ -56,7 +55,7 @@ export default function JournalVoucher() {
     }
     const number = generateVoucherNumber('journal').replace('JOURNAL', 'JV');
     const voucher: Voucher = {
-      id: safeRandomUUID(),
+      id: crypto.randomUUID(),
       number,
       type: 'journal',
       date,

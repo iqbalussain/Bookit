@@ -13,7 +13,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { currencySymbols, type PaymentMethod } from '@/types';
 import { ArrowLeft, Save, RefreshCw } from 'lucide-react';
-import { safeRandomUUID } from '@/lib/uuid';
 
 type LoanGivenType = 'advance_salary' | 'loan_customer' | 'loan_vendor' | 'others';
 
@@ -41,7 +40,7 @@ export default function LoanGivenVoucher() {
     if (amount <= 0) { toast({ title: 'Error', description: 'Amount must be > 0', variant: 'destructive' }); return; }
 
     const now = new Date().toISOString();
-    const voucherId = safeRandomUUID();
+    const voucherId = crypto.randomUUID();
     const paymentAccountId = method === 'cash' ? 'acc-1000' : 'acc-1010';
 
     addVoucher({

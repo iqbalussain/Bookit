@@ -58,14 +58,14 @@ You said the `.exe` keeps showing "missing dependency" errors after install. The
 - This means the user double-clicks the desktop shortcut and the app **always opens** even if the LAN server / network is down.
 
 **c) Bundle a minimal DB seed**
-- On first launch, if `userData/Bit2book.db` doesn't exist, create it from the bundled schema. No internet, no extra install steps.
+- On first launch, if `userData/bookit.db` doesn't exist, create it from the bundled schema. No internet, no extra install steps.
 
 **d) Single-instance lock + AppUserModelId** (already in `main.js` from the prior change) — keep them.
 
 ### 5. Installation instructions (updated `INSTALLATION_GUIDE_WINDOWS.md`)
 
 Short, end-user friendly:
-1. Download `Bit2book Setup 1.0.0.exe` from the Releases page.
+1. Download `BookIt Setup 1.0.0.exe` from the Releases page.
 2. Right-click → **Run as administrator** (only needed first time, for native module registration).
 3. Follow the wizard → choose install location → desktop shortcut auto-created.
 4. Double-click the desktop shortcut. App opens offline immediately, no extra config needed.
@@ -76,7 +76,7 @@ Short, end-user friendly:
 You **cannot build a Windows `.exe` from this Linux sandbox** (electron-builder needs Windows tooling for NSIS + signtool). The repo already has `.github/workflows/release.yml` set up for `windows-latest`. After the code changes are merged, push a tag (e.g. `v1.0.1`) and GitHub Actions will:
 - run `npm ci`
 - run `npm run build-win`
-- upload `Bit2book Setup 1.0.1.exe` to the GitHub Release
+- upload `BookIt Setup 1.0.1.exe` to the GitHub Release
 
 The instructions above will be added to the README so you can trigger this with one git tag.
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,8 +22,6 @@ import { Plus, Trash2, Save, ArrowLeft, Send, Check, X, Download, Share2, Edit2,
 import { generatePDF, shareViaWhatsApp } from '@/lib/documentUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ItemPicker } from '@/components/ItemPicker';
-import { safeRandomUUID } from '@/lib/uuid';
-import { useDelayedMissingRedirect } from '@/hooks/useDelayedMissingRedirect';
 
 export default function QuotationForm() {
   const { id } = useParams();
@@ -47,7 +45,7 @@ export default function QuotationForm() {
   const [terms, setTerms] = useState(existingQuotation?.terms || 'Payment terms: Net 30 days');
   const [items, setItems] = useState<LineItem[]>(
     existingQuotation?.items || [
-      { id: safeRandomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 },
+      { id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 },
     ]
   );
 
@@ -104,10 +102,10 @@ export default function QuotationForm() {
 
   const addItem = () => {
     if (isMobile) {
-      setTempItem({ id: safeRandomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 });
+      setTempItem({ id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 });
       setIsAddItemSheetOpen(true);
     } else {
-      setItems((prev) => [...prev, { id: safeRandomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]);
+      setItems((prev) => [...prev, { id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]);
     }
   };
 
@@ -146,7 +144,7 @@ export default function QuotationForm() {
       toast({ title: 'Error', description: 'Client name is required', variant: 'destructive' });
       return;
     }
-    const client: Client = { id: safeRandomUUID(), ...newClient, type: 'customer', createdAt: new Date().toISOString() };
+    const client: Client = { id: crypto.randomUUID(), ...newClient, type: 'customer', createdAt: new Date().toISOString() };
     addClient(client);
     setClientId(client.id);
     setIsAddClientOpen(false);
@@ -185,7 +183,7 @@ export default function QuotationForm() {
       toast({ title: 'Quotation updated', description: `${existingQuotation.number} has been updated.` });
     } else {
       const newQuotation: Quotation = {
-        id: safeRandomUUID(), number: generateQuotationNumber(), clientId, items, netTotal: grandTotal,
+        id: crypto.randomUUID(), number: generateQuotationNumber(), clientId, items, netTotal: grandTotal,
         status: finalStatus, notes, terms, salesmanId, createdAt: now, updatedAt: now,
       };
       addQuotation(newQuotation);
@@ -213,7 +211,9 @@ export default function QuotationForm() {
     shareViaWhatsApp({ type: 'quotation', document: existingQuotation, client, settings });
   };
 
-  useDelayedMissingRedirect(Boolean(isEditing), Boolean(existingQuotation), '/quotations');
+  useEffect(() => {
+    if (isEditing && !existingQuotation) navigate('/quotations');
+  }, [isEditing, existingQuotation, navigate]);
 
   const isConverted = existingQuotation?.status === 'converted';
 
@@ -510,7 +510,7 @@ export default function QuotationForm() {
             <Button variant="outline" size="sm" onClick={() => setIsAddSalesmanOpen(false)}>Cancel</Button>
             <Button size="sm" onClick={() => {
               if (!newSalesman.name.trim()) return toast({ title: 'Error', description: 'Salesman name required', variant: 'destructive' });
-              const s = { id: safeRandomUUID(), name: newSalesman.name, phone: newSalesman.phone, createdAt: new Date().toISOString() };
+              const s = { id: crypto.randomUUID(), name: newSalesman.name, phone: newSalesman.phone, createdAt: new Date().toISOString() };
               addSalesman(s);
               setSalesmanId(s.id);
               setIsAddSalesmanOpen(false);

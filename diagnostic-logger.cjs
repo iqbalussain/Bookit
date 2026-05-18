@@ -1,8 +1,8 @@
 /**
- * Diagnostic Logger for Bit2book
+ * Diagnostic Logger for BookIt
  * 
  * Logs startup issues, dependency problems, and system configuration
- * Stores logs in %APPDATA%\Bit2book\logs for troubleshooting
+ * Stores logs in %APPDATA%\bookit\logs for troubleshooting
  */
 
 const fs = require('fs');
@@ -18,7 +18,7 @@ class DiagnosticLogger {
     this.logs = [];
     
     this.log('debug', '='.repeat(80));
-    this.log('info', `Bit2book Diagnostic Session Started - ${new Date().toISOString()}`);
+    this.log('info', `BookIt Diagnostic Session Started - ${new Date().toISOString()}`);
     this.log('debug', '='.repeat(80));
     this.logSystemInfo();
   }
@@ -30,7 +30,7 @@ class DiagnosticLogger {
       return path.join(app.getPath('userData'), 'logs');
     }
     // Fallback for CLI
-    return path.join(os.homedir(), 'AppData', 'Local', 'Bit2book', 'logs');
+    return path.join(os.homedir(), 'AppData', 'Local', 'bookit', 'logs');
   }
 
   ensureLogsDirectory() {
@@ -41,13 +41,13 @@ class DiagnosticLogger {
 
   createSessionLogFile() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return path.join(this.logsDir, `Bit2book-${timestamp}.log`);
+    return path.join(this.logsDir, `bookit-${timestamp}.log`);
   }
 
   logSystemInfo() {
     this.log('info', `OS Platform: ${process.platform} ${os.release()}`);
     this.log('info', `Node Version: ${process.version}`);
-    this.log('info', `App Version: ${process.env.Bit2book_VERSION || 'unknown'}`);
+    this.log('info', `App Version: ${process.env.BOOKIT_VERSION || 'unknown'}`);
     this.log('info', `User: ${os.userInfo().username}`);
     this.log('info', `Logs Directory: ${this.logsDir}`);
     this.log('info', `Working Directory: ${process.cwd()}`);
@@ -149,7 +149,7 @@ class DiagnosticLogger {
         
         // Check if writable
         try {
-          const testFile = path.join(dirPath, `.Bit2book-write-test-${Date.now()}`);
+          const testFile = path.join(dirPath, `.bookit-write-test-${Date.now()}`);
           fs.writeFileSync(testFile, 'test', { flag: 'w' });
           fs.unlinkSync(testFile);
           this.log('info', '✓ Directory is writable');

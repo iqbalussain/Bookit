@@ -1,6 +1,6 @@
 {
-  "appId": "com.Bit2book.app",
-  "productName": "Bit2book",
+  "appId": "com.bookit.app",
+  "productName": "BookIt",
 
   "directories": {
     "buildResources": "public",
@@ -33,6 +33,7 @@
 
   "win": {
     "target": ["nsis"],
+    "icon": "public/icon.ico",
     "signAndEditExecutable": false
   },
 

@@ -10,7 +10,6 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
-  componentStack?: string;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -27,19 +26,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('ErrorBoundary caught:', error, info);
-    this.setState({ componentStack: info.componentStack });
-
-    if (typeof window !== 'undefined' && window.electronAPI?.logRendererError) {
-      void window.electronAPI.logRendererError({
-        message: error.message,
-        stack: error.stack,
-        componentStack: info.componentStack,
-        context: this.props.inline ? 'inline-boundary' : 'root-boundary',
-      });
-    }
   }
 
-  reset = () => this.setState({ hasError: false, error: undefined, componentStack: undefined });
+  reset = () => this.setState({ hasError: false, error: undefined });
 
   render() {
     if (!this.state.hasError) return this.props.children;
@@ -52,12 +41,6 @@ export class ErrorBoundary extends Component<Props, State> {
           <p className="text-sm text-muted-foreground break-words">
             {this.state.error?.message ?? 'An unexpected error occurred.'}
           </p>
-          {this.state.componentStack ? (
-            <details className="text-left text-xs bg-background/70 rounded border p-2 max-h-40 overflow-auto">
-              <summary className="cursor-pointer font-medium">Technical details</summary>
-              <pre className="whitespace-pre-wrap break-words mt-2">{this.state.componentStack}</pre>
-            </details>
-          ) : null}
           <Button onClick={this.reset} variant="outline" size="sm">Try again</Button>
         </div>
       </div>
