@@ -52,6 +52,8 @@ interface AppContextType {
   // Payments
   payments: Payment[];
   addPayment: (payment: Payment) => void;
+  updatePayment: (payment: Payment) => void;
+  deletePayment: (id: string) => void;
   getPaymentsByInvoice: (invoiceId: string) => Payment[];
   getPaymentsByClient: (clientId: string) => Payment[];
   calculateInvoicePaymentStatus: (invoiceId: string) => Extract<InvoiceStatus, 'sent' | 'partial' | 'paid'>;
@@ -64,6 +66,8 @@ interface AppContextType {
   // Vouchers
   vouchers: Voucher[];
   addVoucher: (voucher: Voucher) => void;
+  updateVoucher: (voucher: Voucher) => void;
+  deleteVoucher: (id: string) => void;
   generateVoucherNumber: (type: string) => string;
   addJournalVoucher: (voucher: Voucher, lines: JournalLine[]) => void;
 
