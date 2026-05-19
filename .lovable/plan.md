@@ -1,101 +1,47 @@
+# Fix Edit/Delete on Invoices, Payments, Vouchers + Sequence Sales List
 
+## What changes
 
-# Fix Build Errors, Failed-Module Loads, and Make Offline `.exe` Launch Reliably
+### 1. Sales invoice list sorted by invoice number (sequence)
+`src/pages/InvoicesList.tsx` currently sorts by `updatedAt` desc.
+Change to sort by `invoice.number` in descending natural order (newest sequence number first), using a `localeCompare(..., undefined, { numeric: true })` comparator so `INV-2026-010` comes after `INV-2026-009`.
 
-## Root cause (one underlying problem causing all symptoms)
+### 2. Allow editing invoices marked as Sent / Partial / Overdue
+In `src/pages/InvoiceForm.tsx`:
+- The form already loads the data; only the **Save Changes** button is hidden because of `currentStatus === 'draft'`.
+- Show **Save Changes** for any status except `cancelled` (so draft, sent, partial, overdue, paid can all be edited).
+- Keep the existing `repostSalesInvoice` flow on save — journals are reversed and reposted automatically.
+- Inputs are already editable; no other gating exists.
 
-`package.json` is missing critical devDependencies and the previously-added installer scripts have been wiped. Specifically:
+### 3. Delete + Edit for Payment & Receipt vouchers
+- Add `updatePayment(payment)` and `deletePayment(id)` to `src/contexts/AppContext.tsx`. Delete also reverses the associated journal entry via `reverseJournalForReference('receipt'|'payment', paymentId)` and recomputes the parent invoice status; update re-posts the journal.
+- Rework `src/pages/PaymentsReceipts.tsx`:
+  - Keep the existing "create" form at the top.
+  - Add a **History list** below showing all payments + receipts (filterable by tab) with: invoice number, party, amount, date, method, plus **Edit** and **Delete** buttons.
+  - Edit loads the record back into the form (form switches to "update" mode and on save calls `updatePayment` instead of `addPayment`).
+  - Delete calls `deletePayment` and refreshes the parent invoice's status.
 
-- **No `@types/react` / `@types/react-dom`** → TypeScript sees a transitive, mismatched copy. Class components like `ErrorBoundary` get the wrong `Component` base type → **TS2786 "missing context, setState, forceUpdate, props, refs"** in `App.tsx`.
-- **`tsconfig.app.json` has `"types": ["vitest/globals"]`** but `vitest` isn't installed. The `types` array also suppresses default global type discovery, worsening the React types problem.
-- **TS errors break the Vite dev module graph** → `Failed to fetch dynamically imported module: /src/pages/QuotationsList.tsx` (and every other lazy page). This is why "most pages" fail to load.
-- **No `electron-builder`, no `build-win` script, no native rebuild step** → `.exe` either doesn't build or installs but crashes on launch (sqlite3 native binding mismatch).
-- **No `express`, `better-sqlite3`, `cors` as top-level deps for the bundled LAN server** → server can't start after install.
+### 4. Delete + Edit for other Vouchers (Expense / Contra / Loan / Journal)
+- Add `updateVoucher(voucher)` and `deleteVoucher(id)` to `AppContext.tsx`. Delete reverses the linked journal entry (by `referenceId = voucher.id`); update reverses and re-posts.
+- In `src/pages/VoucherDashboard.tsx`, change the **Recent Vouchers** list rows to include **Edit** (navigates to `/vouchers/{type}/{id}`) and **Delete** (confirm + call `deleteVoucher` / `deletePayment`).
+- The existing voucher form pages (`ExpensesVoucher`, `ContraVoucher`, `LoanGivenVoucher`, `LoanReceivedVoucher`, `JournalVoucher`) already accept an `id` param pattern via routes; wire the routes in `App.tsx` to `/vouchers/{type}/:id` and prefill the form when an id is present. Save in edit mode calls `updateVoucher` + repost.
 
-Fixing the `package.json` and `tsconfig.app.json` resolves the build errors AND the runtime "Failed to fetch module" errors in one shot.
+### 5. Clean up "issues in the application"
+Scope the cleanup to small, observable problems:
+- Remove the now-unused `import { Badge }` etc. that would become dead after the edits.
+- Ensure `calculateInvoicePaymentStatus` is recomputed after a payment is deleted (currently it is derived from `payments[]` so this is automatic — no change needed beyond removing the payment row).
+- No schema migration required; all tables already have full RLS for insert/update/delete.
 
-## Changes
+## Technical notes
 
-### 1. `package.json` — restore missing pieces
+- Journal reversal pattern already exists for `sales_invoice`. Extend `reverseJournalForReference` in `AppContext` to handle `'receipt' | 'payment' | 'expense' | 'contra' | 'loan_given' | 'loan_received' | 'journal'` by emitting a reversal entry (debits/credits flipped) with `reversalOf = original.id` and a new idempotency key.
+- All new context methods follow the existing `addAuditEntry` convention.
+- Sort comparator example:
+  ```ts
+  filteredInvoices.sort((a, b) => b.number.localeCompare(a.number, undefined, { numeric: true }))
+  ```
 
-Add to `devDependencies`:
-- `typescript`, `@types/react`, `@types/react-dom`, `@types/node`
-- `electron-builder` (required for NSIS `.exe`)
-- `vitest`, `@testing-library/react`, `@vitest/ui` (referenced by `vitest.config.ts` and `tsconfig.app.json`)
-
-Add to `dependencies` (used by the bundled LAN server that the Electron app spawns):
-- `express`, `better-sqlite3`, `cors`
-
-Add scripts:
-```json
-"build-win": "npm run build && npm run rebuild-electron && npx electron-builder --config electron-builder.json --win nsis --x64 --publish never",
-"rebuild-electron": "electron-builder install-app-deps",
-"postinstall": "electron-builder install-app-deps"
-```
-
-### 2. `tsconfig.app.json` — remove the broken `types` restriction
-
-- Remove `"types": ["vitest/globals"]`. Vitest globals are picked up via `vitest.config.ts` + a triple-slash reference in `src/test/setup.ts` instead. This unblocks default React type resolution.
-
-### 3. `src/components/ErrorBoundary.tsx` — defensive: explicit props
-
-The class is fine, but to make it bulletproof against any remaining type-resolution oddity, declare props explicitly with `React.PropsWithChildren` and add `static displayName`. Tiny edit, no behavior change.
-
-### 4. One-step "Always launches offline" guarantee for the installed `.exe`
-
-You said the `.exe` keeps showing "missing dependency" errors after install. The plan:
-
-**a) Native module is properly unpacked & rebuilt for Electron**
-- `electron-builder.json` already has `asarUnpack: ["node_modules/sqlite3/**/*"]`. We'll also add `node_modules/better-sqlite3/**/*` (used by the LAN server) and ensure `buildDependenciesFromSource: true` + `nodeGypRebuild: false` so the installer doesn't try to compile on the user's PC.
-- `postinstall` + `rebuild-electron` ensure the native `.node` bindings shipped in the installer match Electron's Node ABI.
-
-**b) Auto-fallback to offline mode on launch**
-- New module `offline-launch-verifier.js` already exists in the repo. Wire it into `main.js` so on every launch:
-  1. Verify `userData` directory is writable.
-  2. Verify the bundled `dist/` exists (or dev URL is reachable).
-  3. Verify SQLite native binding loads.
-  4. If LAN server mode is configured but unreachable → silently fall back to local SQLite (offline) and show a small banner: "Working offline — server unreachable".
-- This means the user double-clicks the desktop shortcut and the app **always opens** even if the LAN server / network is down.
-
-**c) Bundle a minimal DB seed**
-- On first launch, if `userData/bookit.db` doesn't exist, create it from the bundled schema. No internet, no extra install steps.
-
-**d) Single-instance lock + AppUserModelId** (already in `main.js` from the prior change) — keep them.
-
-### 5. Installation instructions (updated `INSTALLATION_GUIDE_WINDOWS.md`)
-
-Short, end-user friendly:
-1. Download `BookIt Setup 1.0.0.exe` from the Releases page.
-2. Right-click → **Run as administrator** (only needed first time, for native module registration).
-3. Follow the wizard → choose install location → desktop shortcut auto-created.
-4. Double-click the desktop shortcut. App opens offline immediately, no extra config needed.
-5. (Optional) For LAN multi-user: open Settings → Network, switch to **Server** on host PC; on each client PC switch to **Client** and paste the host's `http://<lan-ip>:4000`.
-
-### 6. How the `.exe` is actually produced
-
-You **cannot build a Windows `.exe` from this Linux sandbox** (electron-builder needs Windows tooling for NSIS + signtool). The repo already has `.github/workflows/release.yml` set up for `windows-latest`. After the code changes are merged, push a tag (e.g. `v1.0.1`) and GitHub Actions will:
-- run `npm ci`
-- run `npm run build-win`
-- upload `BookIt Setup 1.0.1.exe` to the GitHub Release
-
-The instructions above will be added to the README so you can trigger this with one git tag.
-
-## Files changed
-
-| File | Change |
-|---|---|
-| `package.json` | Add missing devDeps (typescript, @types/react, @types/react-dom, @types/node, electron-builder, vitest, testing-library), runtime deps (express, better-sqlite3, cors), scripts (`build-win`, `rebuild-electron`, `postinstall`) |
-| `tsconfig.app.json` | Remove `"types": ["vitest/globals"]` |
-| `src/components/ErrorBoundary.tsx` | Tighten typing with `React.PropsWithChildren` + `displayName` |
-| `electron-builder.json` | Add `better-sqlite3` to `asarUnpack`, set `nodeGypRebuild: false` |
-| `main.js` | Wire `offline-launch-verifier.js` into startup; auto-fallback to offline if LAN server unreachable; show inline banner instead of blocking dialog |
-| `INSTALLATION_GUIDE_WINDOWS.md` | Rewrite as a clear 5-step guide; add the GitHub Actions tag-to-release flow |
-| `README.md` | Link to the new install guide; document offline-by-default behavior |
-
-## Why this fixes the runtime "Failed to fetch dynamically imported module"
-
-That error appears whenever Vite's TypeScript checker rejects a module in the dependency graph — the dev server then refuses to serve the lazy chunk. Once `@types/react` is installed correctly and `tsconfig.app.json` no longer specifies a missing `vitest/globals`, every page (`QuotationsList`, `InvoicesList`, etc.) will compile and load again.
-
-## Credit budget
-All changes are small, mostly config/manifest edits + one main.js wiring. Fits within ~0.8 credits as requested. No UI redesign, no new features, no schema migration.
-
+## Out of scope
+- No design overhaul of the voucher dashboard or payments page.
+- No multi-user permission changes.
+- No new reports.
