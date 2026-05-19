@@ -318,9 +318,65 @@ export default function PaymentsReceipts() {
 
       {selectedInvoiceId && (
         <Button onClick={handleSave} className="w-full h-10">
-          <Save className="mr-1.5 h-4 w-4" />{mode === 'receipt' ? 'Record Receipt' : 'Record Payment'}
+          <Save className="mr-1.5 h-4 w-4" />
+          {editingPaymentId
+            ? 'Update'
+            : mode === 'receipt' ? 'Record Receipt' : 'Record Payment'}
         </Button>
       )}
+
+      <Card>
+        <CardHeader className="py-2.5 px-3">
+          <CardTitle className="text-sm">
+            {mode === 'receipt' ? 'Receipts History' : 'Payments History'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-3 pb-3">
+          {historyItems.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-4 text-center">No records yet.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {historyItems.map((p) => (
+                <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-medium truncate">{lookupInvoiceNumber(p)}</p>
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{p.method}</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {lookupPartyName(p)} • {new Date(p.date).toLocaleDateString()}
+                      {p.reference ? ` • Ref: ${p.reference}` : ''}
+                    </p>
+                  </div>
+                  <p className="text-xs font-semibold shrink-0">{currencySymbol}{p.amount.toLocaleString('en-IN')}</p>
+                  <div className="flex gap-0.5 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => loadForEdit(p)}>
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7"><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete {p.invoiceType === 'sales' ? 'Receipt' : 'Payment'}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This removes the entry and reverses the linked journal. Cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(p)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
