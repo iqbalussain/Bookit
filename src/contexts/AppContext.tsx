@@ -418,11 +418,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updatePayment = (payment: Payment) => {
+    const existing = payments.find((p) => p.id === payment.id);
     setPayments((prev) => prev.map((p) => (p.id === payment.id ? payment : p)));
+
+    // Reverse the previously posted journal entry (if any) and re-post fresh
+    // lines that reflect the updated amount / method / invoice / type so the
+    // ledger stays consistent after edits.
+    const refType: JournalEntry['referenceType'] =
+      payment.invoiceType === 'sales' ? 'receipt' : 'payment';
+    const previousRefType: JournalEntry['referenceType'] = existing
+      ? existing.invoiceType === 'sales' ? 'receipt' : 'payment'
+      : refType;
+
+    // Remove old journal entries linked to this payment (cover the case where
+    // invoiceType itself changed, e.g. switching between receipt/payment).
+    setJournalEntries((prev) =>
+      prev.filter(
+        (e) =>
+          !(
+            (e.referenceType === previousRefType || e.referenceType === refType) &&
+            e.referenceId === payment.id
+          ),
+      ),
+    );
+
+    const paymentAccountId = payment.method === 'cash' ? 'acc-1000' : 'acc-1010';
+    const lines: JournalLine[] =
+      payment.invoiceType === 'sales'
+        ? [
+            { accountId: paymentAccountId, debit: payment.amount, credit: 0 },
+            { accountId: 'acc-1100', debit: 0, credit: payment.amount },
+          ]
+        : [
+            { accountId: 'acc-2000', debit: payment.amount, credit: 0 },
+            { accountId: paymentAccountId, debit: 0, credit: payment.amount },
+          ];
+
+    const newEntry: JournalEntry = {
+      id: crypto.randomUUID(),
+      date: payment.date,
+      reference: `${refType === 'receipt' ? 'REC' : 'PAY'}-${payment.id.slice(0, 8)}`,
+      referenceType: refType,
+      referenceId: payment.id,
+      description: `${refType === 'receipt' ? 'Receipt' : 'Payment'} ${payment.reference || payment.invoiceId} (updated)`,
+      lines,
+      createdAt: new Date().toISOString(),
+      // Bump idempotency key so the new entry isn't deduped against the old one
+      idempotencyKey: `${refType}:${payment.id}:${Date.now()}`,
+    };
+    assertBalancedLines(newEntry.lines, 'Updated payment journal is unbalanced');
+    setJournalEntries((prev) => [...prev, newEntry]);
+
     addAuditEntry({
       type: 'payment', action: 'updated',
       target: payment.reference || payment.invoiceId,
-      details: `Payment updated (${payment.method})`,
+      details: `Payment updated (${payment.method}) – journal reversed and reposted`,
       value: payment.amount,
     });
   };
