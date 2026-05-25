@@ -22,10 +22,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
     // Then fetch existing
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        setSession(data.session);
+      })
+      .catch((err) => {
+        console.warn('[auth] getSession failed:', err);
+        setSession(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
     return () => sub.subscription.unsubscribe();
   }, []);
 

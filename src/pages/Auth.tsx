@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,42 +26,57 @@ export default function Auth() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) {
-      toast({ title: 'Sign-in failed', description: error.message, variant: 'destructive' });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast({ title: 'Sign-in failed', description: error.message, variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Sign-in failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: { display_name: displayName || email },
-      },
-    });
-    setBusy(false);
-    if (error) {
-      toast({ title: 'Sign-up failed', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Account created', description: 'You are now signed in.' });
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: { display_name: displayName || email },
+        },
+      });
+      if (error) {
+        toast({ title: 'Sign-up failed', description: error.message, variant: 'destructive' });
+      } else {
+        toast({ title: 'Account created', description: 'You are now signed in.' });
+      }
+    } catch (err) {
+      toast({ title: 'Sign-up failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleGoogle = async () => {
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
+    try {
+      const { lovable } = await import('@/integrations/lovable');
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast({ title: 'Google sign-in failed', description: String(result.error), variant: 'destructive' });
+      }
+    } catch (err) {
+      toast({ title: 'Google sign-in failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+    } finally {
       setBusy(false);
-      toast({ title: 'Google sign-in failed', description: String(result.error), variant: 'destructive' });
     }
-    // Otherwise either redirected or session set.
   };
 
   return (
