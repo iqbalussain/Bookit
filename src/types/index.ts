@@ -9,7 +9,6 @@ export interface Client {
   phone: string;
   address: string;
   type: PartyType;
-  contactPerson?: string;
   paymentTermsDays?: number;
   taxRegistrationNumber?: string;
   creditLimit?: number;
@@ -25,15 +24,12 @@ export interface LineItem {
   quantity: number;
   rate: number;
   total: number;
-  percentage?: number;
   cost?: number;
   stock?: number;
   reorderLevel?: number;
   vatApplicable?: boolean;
   vatPercentage?: number;
   vatAmount?: number;
-  activityId?: string;
-  completionPercentage?: number;
 }
 
 // Item master
@@ -71,21 +67,6 @@ export interface Quotation {
 
 // Invoice types
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled';
-export type InvoiceApprovalStatus = 'pending' | 'site_engineer' | 'qc' | 'project_manager' | 'accounts' | 'paid';
-export type InvoiceType = 'normal' | 'project';
-export type DiscountType = 'percentage' | 'fixed';
-
-export interface ProjectInvoiceSummary {
-  projectTotalValue: number;
-  previousPercentage: number;
-  previousAmount: number;
-  currentPercentage: number;
-  currentAmount: number;
-  totalInvoicedPercentage: number;
-  totalInvoicedAmount: number;
-  remainingPercentage: number;
-  remainingAmount: number;
-}
 
 export interface Invoice {
   id: string;
@@ -93,56 +74,12 @@ export interface Invoice {
   clientId: string;
   salesmanId?: string;
   quotationId?: string;
-  invoiceType?: InvoiceType;
-  projectId?: string;
-  projectName?: string;
-  lpoNumber?: string;
-  projectTotalValue?: number;
-  totalPercentage?: number;
-  discountType?: DiscountType;
-  discountValue?: number;
-  discountAmount?: number;
-  subtotal?: number;
-  vatTotal?: number;
-  projectSummary?: ProjectInvoiceSummary;
   items: LineItem[];
   netTotal: number;
   status: InvoiceStatus;
-  approvalStatus?: InvoiceApprovalStatus;
   dueDate: string;
   notes: string;
   terms: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type ProjectStatus = 'active' | 'completed' | 'cancelled' | 'pending_valuation';
-
-export interface ProjectActivity {
-  id: string;
-  name: string;
-  percentage: number;
-  amount: number;
-}
-
-export interface Project {
-  id: string;
-  vendorId: string;
-  customerId?: string;
-  name: string;
-  totalValue: number;
-  lpoNumber: string;
-  startDate: string;
-  endDate: string;
-  status: ProjectStatus;
-  valuationCompleted: boolean;
-  activities: ProjectActivity[];
-  totalInvoicedAmount: number;
-  totalInvoicedPercentage: number;
-  remainingAmount: number;
-  remainingPercentage: number;
-  totalPaymentReceived?: number;
-  linkedInvoiceIds: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -329,7 +266,6 @@ export interface ElectronAPI {
   getDbPath: () => Promise<string>;
   backup: (destinationPath: string) => Promise<void>;
   restore: (backupPath: string) => Promise<void>;
-  logRendererError: (payload: { message?: string; stack?: string; componentStack?: string; context?: string }) => Promise<boolean>;
 
   // Update methods
   update: {
@@ -344,3 +280,9 @@ export interface ElectronAPI {
   };
 }
 
+// Extend Window interface
+declare global {
+  interface Window {
+    electronAPI?: ElectronAPI;
+  }
+}

@@ -59,10 +59,11 @@ db.exec(`
   );
 `);
 
+// Whitelist of collections the API will accept.
 const COLLECTIONS = new Set([
   'clients', 'items', 'quotations', 'invoices', 'purchaseInvoices', 'salesmen',
   'payments', 'vouchers', 'journalEntries', 'accounts', 'companies',
-  'audit', 'projects'
+  'audit',
 ]);
 
 const app = express();

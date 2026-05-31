@@ -168,7 +168,7 @@ export default function QuotationsList() {
                           <span className="truncate">{getSalesman(quotation.salesmanId || '')?.name || 'No salesman'}</span>
                           <span>•</span>
                           <span className="shrink-0">
-                            {new Date(quotation.updatedAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            {new Date(quotation.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                           </span>
                         </div>
                       </div>

@@ -1,7 +1,7 @@
 /**
  * Offline Launch Verification Module
  * 
- * Ensures MITC can launch and function offline without missing dependencies
+ * Ensures BookIt can launch and function offline without missing dependencies
  * Runs before the app fully initializes
  */
 

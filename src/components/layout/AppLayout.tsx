@@ -1,11 +1,8 @@
 import { ReactNode, useState, useEffect, useCallback } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
-import { FloatingActionButton } from '@/components/layout/FloatingActionButton';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
   FileText,
@@ -21,8 +18,6 @@ import {
   Sun,
   Moon,
   ArrowRight,
-  Briefcase,
-  LogOut,
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -31,14 +26,12 @@ interface AppLayoutProps {
 
 const navItems = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Projects', href: '/projects', icon: Briefcase },
   { name: 'Quotations', href: '/quotations', icon: FileText },
   { name: 'Sales', href: '/invoices', icon: Receipt },
   { name: 'Purchases', href: '/purchases', icon: ShoppingCart },
   { name: 'Vouchers', href: '/vouchers', icon: Wallet },
   { name: 'Parties', href: '/clients', icon: Users },
   { name: 'Accounts', href: '/accounts', icon: BookOpen },
-  { name: 'Day Book', href: '/day-book', icon: BookOpen },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -51,12 +44,10 @@ const reportSubmenuItems = [
 
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
-  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [reportsOpen, setReportsOpen] = useState(location.pathname.startsWith('/reports'));
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const { signOut, user } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -74,13 +65,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   }, [setTheme, theme]);
 
-
-  const navigateTo = useCallback((href: string) => {
-    if (!href) return;
-    navigate(href);
-    setSidebarOpen(false);
-  }, [navigate]);
-
   const getIsActive = (href: string | null) => {
     if (!href) return false;
     return location.pathname === href || (href !== '/' && location.pathname.startsWith(href));
@@ -95,7 +79,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <Receipt className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">MITC OS</p>
+              <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">BookIt OS</p>
               <p className="text-lg font-semibold tracking-tight">Business HQ</p>
             </div>
           </Link>
@@ -113,7 +97,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Link
                     key={item.name}
                     to={item.href || '/'}
-                    onClick={() => navigateTo(item.href || '/')}
                     className={cn(
                       'group flex items-center gap-3 rounded-3xl px-4 py-3 transition-all duration-200',
                       active
@@ -145,7 +128,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                       <Link
                         key={item.name}
                         to={item.href}
-                        onClick={() => navigateTo(item.href)}
                         className={cn(
                           'flex items-center gap-2 rounded-2xl px-3 py-2 text-sm transition-colors',
                           getIsActive(item.href)
@@ -208,9 +190,6 @@ export function AppLayout({ children }: AppLayoutProps) {
                     <Receipt className="h-4 w-4" /> New Invoice
                   </Link>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => signOut()} title={user?.email ?? 'Sign out'}>
-                  <LogOut className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           </header>
@@ -232,13 +211,13 @@ export function AppLayout({ children }: AppLayoutProps) {
                     <Link
                       key={item.name}
                       to={item.href || '/'}
-                      onClick={() => navigateTo(item.href || '/')}
                       className={cn(
                         'flex items-center gap-3 rounded-3xl px-4 py-3 transition',
                         getIsActive(item.href)
                           ? 'bg-primary text-primary-foreground'
                           : 'border border-border/70 bg-card text-foreground hover:bg-primary/10',
                       )}
+                      onClick={() => setSidebarOpen(false)}
                     >
                       <item.icon className="h-4 w-4" />
                       {item.name}
@@ -249,10 +228,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           )}
 
-          <main className="p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">{children}</main>
-
-          <MobileBottomNav />
-          <FloatingActionButton />
+          <main className="p-4 sm:p-6 lg:p-8">{children}</main>
         </div>
       </div>
     </div>

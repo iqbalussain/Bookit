@@ -242,7 +242,7 @@ export const DiagnosticsPanel: React.FC = () => {
             <strong>Export Logs:</strong> Click "Export Diagnostics" button above and share the file
           </p>
           <p className="text-xs text-gray-600 mt-4">
-            Logs location: <code className="bg-gray-100 px-1">%LOCALAPPDATA%\MITC\logs\</code>
+            Logs location: <code className="bg-gray-100 px-1">%LOCALAPPDATA%\bookit\logs\</code>
           </p>
         </CardContent>
       </Card>

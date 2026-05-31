@@ -19,7 +19,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { Account, AccountNodeKind, AccountType } from '@/types';
 import { Plus, Trash2, ChevronRight, ChevronDown, FolderTree } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { safeRandomUUID } from '@/lib/uuid';
 
 const typeColors: Record<AccountType, string> = {
   asset: 'bg-primary/10 text-primary',
@@ -121,7 +120,7 @@ export default function ChartOfAccounts() {
     }
 
     const account: Account = {
-      id: `acc-${safeRandomUUID().slice(0, 8)}`,
+      id: `acc-${crypto.randomUUID().slice(0, 8)}`,
       code: formData.code.trim(),
       name: formData.name.trim(),
       type: formData.type,

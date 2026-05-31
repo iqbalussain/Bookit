@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Package, Search } from 'lucide-react';
 import type { Item } from '@/types';
 import { currencySymbols } from '@/types';
-import { safeRandomUUID } from '@/lib/uuid';
 
 const emptyItem = (defaultVat: number, vatEnabled: boolean): Item => ({
   id: '', name: '', description: '', unit: 'pcs',
@@ -60,7 +59,7 @@ export default function ItemsList() {
       updateItem({ ...form, id: editing.id });
       toast({ title: 'Item updated', description: form.name });
     } else {
-      addItem({ ...form, id: safeRandomUUID(), createdAt: new Date().toISOString() });
+      addItem({ ...form, id: crypto.randomUUID(), createdAt: new Date().toISOString() });
       toast({ title: 'Item created', description: form.name });
     }
     setOpen(false);

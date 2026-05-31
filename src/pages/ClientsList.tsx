@@ -22,7 +22,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { Client, PartyType } from '@/types';
 import { Plus, Search, Users, Trash2, Edit, Phone, Mail, MapPin, ChevronRight, FileText } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { safeRandomUUID } from '@/lib/uuid';
 
 export default function ClientsList() {
   const { clients, addClient, updateClient, deleteClient } = useApp();
@@ -35,7 +34,7 @@ export default function ClientsList() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', address: '', contactPerson: '',
+    name: '', email: '', phone: '', address: '',
     type: 'customer' as PartyType,
     paymentTermsDays: '',
     taxRegistrationNumber: '',
@@ -49,7 +48,7 @@ export default function ClientsList() {
   });
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', phone: '', address: '', contactPerson: '', type: 'customer', paymentTermsDays: '', taxRegistrationNumber: '', creditLimit: '' });
+    setFormData({ name: '', email: '', phone: '', address: '', type: 'customer', paymentTermsDays: '', taxRegistrationNumber: '', creditLimit: '' });
     setEditingClient(null);
   };
 
@@ -57,7 +56,7 @@ export default function ClientsList() {
     if (client) {
       setEditingClient(client);
       setFormData({
-        name: client.name, email: client.email, phone: client.phone, address: client.address, contactPerson: client.contactPerson || '',
+        name: client.name, email: client.email, phone: client.phone, address: client.address,
         type: client.type || 'customer',
         paymentTermsDays: client.paymentTermsDays?.toString() || '',
         taxRegistrationNumber: client.taxRegistrationNumber || '',
@@ -72,7 +71,7 @@ export default function ClientsList() {
     if (!formData.name.trim()) { toast({ title: 'Error', description: 'Client name is required', variant: 'destructive' }); return; }
 
     const clientData = {
-      name: formData.name, email: formData.email, phone: formData.phone, address: formData.address, contactPerson: formData.contactPerson,
+      name: formData.name, email: formData.email, phone: formData.phone, address: formData.address,
       type: formData.type,
       paymentTermsDays: formData.paymentTermsDays ? Number(formData.paymentTermsDays) : undefined,
       taxRegistrationNumber: formData.taxRegistrationNumber || undefined,
@@ -83,7 +82,7 @@ export default function ClientsList() {
       updateClient({ ...editingClient, ...clientData });
       toast({ title: 'Client updated', description: `${formData.name} has been updated.` });
     } else {
-      const newClient: Client = { id: safeRandomUUID(), ...clientData, createdAt: new Date().toISOString() };
+      const newClient: Client = { id: crypto.randomUUID(), ...clientData, createdAt: new Date().toISOString() };
       addClient(newClient);
       toast({ title: 'Client added', description: `${formData.name} has been added.` });
     }
@@ -141,7 +140,6 @@ export default function ClientsList() {
                   <div className="space-y-1.5"><Label htmlFor="email" className="text-xs">Email</Label><Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="email@example.com" className="h-9" /></div>
                   <div className="space-y-1.5"><Label htmlFor="phone" className="text-xs">Phone</Label><Input id="phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+968 1234 5678" className="h-9" /></div>
                 </div>
-                <div className="space-y-1.5"><Label htmlFor="contactPerson" className="text-xs">Contact Person</Label><Input id="contactPerson" value={formData.contactPerson} onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })} placeholder="Contact Person Name" className="h-9" /></div>
                 <div className="space-y-1.5"><Label htmlFor="address" className="text-xs">Address</Label><Input id="address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Full address" className="h-9" /></div>
                 
                 {/* Vendor fields */}

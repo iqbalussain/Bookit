@@ -123,7 +123,7 @@ export default function InvoicesList() {
       ) : (
         <div className="space-y-2">
           {filteredInvoices
-            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+            .sort((a, b) => b.number.localeCompare(a.number, undefined, { numeric: true }))
             .map((invoice) => {
               const client = getClient(invoice.clientId);
               const displayStatus = getDisplayStatus(invoice.status, invoice.id, invoice.dueDate);

@@ -13,7 +13,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { currencySymbols } from '@/types';
 import { ArrowLeft, Save, RefreshCw } from 'lucide-react';
-import { safeRandomUUID } from '@/lib/uuid';
 
 type TransferType = 'cash_to_bank' | 'bank_to_cash' | 'bank_to_bank';
 
@@ -53,7 +52,7 @@ export default function ContraVoucher() {
     if (fromAccountId === toAccountId) { toast({ title: 'Error', description: 'From and To accounts cannot be the same', variant: 'destructive' }); return; }
 
     const now = new Date().toISOString();
-    const voucherId = safeRandomUUID();
+    const voucherId = crypto.randomUUID();
 
     addVoucher({
       id: voucherId, number: voucherNumber, type: 'contra', date,
