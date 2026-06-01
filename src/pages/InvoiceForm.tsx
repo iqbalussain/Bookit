@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -58,6 +59,9 @@ export default function InvoiceForm() {
   const [invoiceType, setInvoiceType] = useState<'normal' | 'project'>(existingInvoice?.invoiceType || 'normal');
   const [projectId, setProjectId] = useState(existingInvoice?.projectId || '');
   const [projectInvoicePercentage, setProjectInvoicePercentage] = useState<number>(existingInvoice?.projectSummary?.currentPercentage || 0);
+  const [invoiceNumberMode, setInvoiceNumberMode] = useState<'auto' | 'manual'>(existingInvoice?.invoiceNumberMode || 'auto');
+  const [invoiceNumber, setInvoiceNumber] = useState(existingInvoice?.number || generateInvoiceNumber());
+  const [vatEnabled, setVatEnabled] = useState(existingInvoice?.vatEnabled ?? settings.vatEnabled ?? true);
   const [items, setItems] = useState<LineItem[]>(
     existingInvoice?.items || sourceQuotation?.items || [{ id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]
   );
@@ -70,8 +74,9 @@ export default function InvoiceForm() {
   const [isAddItemSheetOpen, setIsAddItemSheetOpen] = useState(false);
   const [tempItem, setTempItem] = useState<LineItem>({ id: '', name: '', description: '', quantity: 1, rate: 0, total: 0 });
 
+  const canUseManualInvoiceNumber = settings.allowManualInvoiceNumberEntry || existingInvoice?.invoiceNumberMode === 'manual';
   const netTotal = useMemo(() => items.reduce((sum, item) => sum + item.total, 0), [items]);
-  const vatTotal = useMemo(() => items.reduce((sum, item) => sum + (item.vatAmount ?? 0), 0), [items]);
+  const vatTotal = useMemo(() => (vatEnabled ? items.reduce((sum, item) => sum + (item.vatAmount ?? 0), 0) : 0), [items, vatEnabled]);
   const grandTotal = netTotal + vatTotal;
   // Calculate displayed status based on payment records
   const displayedStatus: InvoiceStatus | 'draft' = existingInvoice ? calculateInvoicePaymentStatus(existingInvoice.id) : 'draft';
@@ -91,6 +96,12 @@ export default function InvoiceForm() {
       setClientId(selectedProject.customerId);
     }
   }, [invoiceType, selectedProject, isEditing]);
+
+  useEffect(() => {
+    if (invoiceNumberMode === 'auto') {
+      setInvoiceNumber(generateInvoiceNumber());
+    }
+  }, [invoiceNumberMode, generateInvoiceNumber]);
 
   const projectSummary = useMemo(() => {
     if (invoiceType !== 'project' || !selectedProject) return undefined;
@@ -127,11 +138,16 @@ export default function InvoiceForm() {
     setItems((prev) => {
       const updated = [...prev];
       const item = { ...updated[index] };
+      const currentVatApplicable = vatEnabled && item.vatApplicable;
       if (field === 'quantity' || field === 'rate') {
         item[field] = Number(value) || 0;
         item.total = item.quantity * item.rate;
-        item.vatAmount = item.vatApplicable ? (item.total * (item.vatPercentage ?? 0)) / 100 : 0;
+        item.vatAmount = currentVatApplicable ? (item.total * (item.vatPercentage ?? 0)) / 100 : 0;
       } else { (item as any)[field] = value; }
+      if (!vatEnabled) {
+        item.vatAmount = 0;
+        item.vatApplicable = false;
+      }
       updated[index] = item;
       return updated;
     });
@@ -144,7 +160,7 @@ export default function InvoiceForm() {
       const qty = cur.quantity || 1;
       const rate = picked.rate;
       const total = qty * rate;
-      const vatAmount = picked.vatApplicable ? (total * picked.vatPercentage) / 100 : 0;
+      const vatAmount = vatEnabled && picked.vatApplicable ? (total * picked.vatPercentage) / 100 : 0;
       updated[index] = {
         ...cur,
         itemId: picked.id,
@@ -152,7 +168,7 @@ export default function InvoiceForm() {
         description: picked.description ?? cur.description,
         rate,
         total,
-        vatApplicable: picked.vatApplicable,
+        vatApplicable: vatEnabled ? picked.vatApplicable : false,
         vatPercentage: picked.vatPercentage,
         vatAmount,
       };
@@ -200,15 +216,22 @@ export default function InvoiceForm() {
   const handleSave = () => {
     if (!clientId) { toast({ title: 'Error', description: 'Please select a client', variant: 'destructive' }); return; }
     if (!salesmanId) { toast({ title: 'Error', description: 'Please select a salesman', variant: 'destructive' }); return; }
+    if (invoiceNumberMode === 'manual' && !invoiceNumber.trim()) { toast({ title: 'Error', description: 'Invoice number is required when manual mode is enabled', variant: 'destructive' }); return; }
+    if (invoices.some((invoice) => invoice.number === invoiceNumber && invoice.id !== existingInvoice?.id)) { toast({ title: 'Error', description: 'Invoice number already exists', variant: 'destructive' }); return; }
     if (items.some((item) => !item.name.trim())) { toast({ title: 'Error', description: 'All items must have a name', variant: 'destructive' }); return; }
     if (invoiceType === 'project' && !projectId) { toast({ title: 'Error', description: 'Please select a project for project invoices', variant: 'destructive' }); return; }
     if (invoiceType === 'project' && projectInvoicePercentage <= 0) { toast({ title: 'Error', description: 'Project billing percentage must be greater than 0', variant: 'destructive' }); return; }
 
     const now = new Date().toISOString();
+    const resolvedNumber = invoiceNumberMode === 'manual' ? invoiceNumber.trim() : invoiceNumber;
 
     if (isEditing && existingInvoice) {
       const updated: Invoice = {
         ...existingInvoice,
+        number: resolvedNumber,
+        manualInvoiceNumber: invoiceNumberMode === 'manual' ? resolvedNumber : undefined,
+        invoiceNumberMode,
+        vatEnabled,
         clientId,
         items,
         netTotal: grandTotal,
@@ -231,11 +254,14 @@ export default function InvoiceForm() {
         return;
       }
 
-      toast({ title: 'Invoice updated', description: `${existingInvoice.number} has been updated.` });
+      toast({ title: 'Invoice updated', description: `${updated.number} has been updated.` });
     } else {
       const newInvoice: Invoice = {
         id: crypto.randomUUID(),
-        number: generateInvoiceNumber(),
+        number: resolvedNumber,
+        manualInvoiceNumber: invoiceNumberMode === 'manual' ? resolvedNumber : undefined,
+        invoiceNumberMode,
+        vatEnabled,
         clientId,
         quotationId: sourceQuotation?.id,
         invoiceType,
@@ -397,6 +423,50 @@ export default function InvoiceForm() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5 sm:col-span-3">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-xs">Invoice Number</Label>
+                    <p className="text-[10px] text-muted-foreground">{invoiceNumberMode === 'manual' ? 'Manually enter the invoice number' : 'Automatically generated invoice number'}</p>
+                  </div>
+                  {canUseManualInvoiceNumber && (
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={invoiceNumberMode === 'manual'}
+                        onCheckedChange={(value) => setInvoiceNumberMode(value ? 'manual' : 'auto')}
+                        disabled={!settings.allowManualInvoiceNumberEntry}
+                      />
+                      <span className="text-xs text-muted-foreground">Manual</span>
+                    </div>
+                  )}
+                </div>
+                <Input
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  disabled={invoiceNumberMode !== 'manual'}
+                  className="h-9"
+                />
+                {!canUseManualInvoiceNumber && (
+                  <p className="text-[10px] text-muted-foreground">Manual invoice numbers are disabled in settings.</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5 sm:col-span-3">
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label className="text-xs">VAT Enabled</Label>
+                  <p className="text-[10px] text-muted-foreground">Enable or disable VAT for this invoice.</p>
+                </div>
+                <Switch checked={vatEnabled} onCheckedChange={(value) => setVatEnabled(value)} />
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">

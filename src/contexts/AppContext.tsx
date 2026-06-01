@@ -147,6 +147,7 @@ const defaultSettings: BusinessSettings = {
   currency: 'INR',
   theme: 'system',
   vatEnabled: true,
+  allowManualInvoiceNumberEntry: false,
   defaultVatPercentage: 5,
   bankName: '',
   bankAccountNumber: '',
@@ -916,19 +917,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       // Sync invoices
       for (const invoice of invoices) {
+        const invoiceVatAmount = invoice.vatEnabled === false ? 0 : invoice.items.reduce((sum, item) => sum + Number(item.vatAmount || 0), 0);
         await window.electronAPI!.query(
-          `INSERT OR REPLACE INTO invoices (id, number, client_id, salesman_id, quotation_id, net_total, vat_amount, total, status, due_date, notes, terms, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [invoice.id, invoice.number, invoice.clientId, (invoice as any).salesmanId || null, invoice.quotationId, invoice.netTotal, 0, invoice.netTotal, invoice.status, invoice.dueDate, invoice.notes, invoice.terms, invoice.createdAt, invoice.updatedAt]
+          `INSERT OR REPLACE INTO invoices (id, number, manual_invoice_number, invoice_number_mode, client_id, salesman_id, quotation_id, net_total, vat_amount, total, vat_enabled, status, due_date, notes, terms, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [invoice.id, invoice.number, invoice.manualInvoiceNumber || null, invoice.invoiceNumberMode || 'auto', invoice.clientId, (invoice as any).salesmanId || null, invoice.quotationId, invoice.netTotal, invoiceVatAmount, invoice.netTotal, invoice.vatEnabled === false ? 0 : 1, invoice.status, invoice.dueDate, invoice.notes, invoice.terms, invoice.createdAt, invoice.updatedAt]
         );
       }
 
       // Sync purchase invoices
       for (const pi of purchaseInvoices) {
+        const purchaseVatAmount = pi.vatEnabled === false ? 0 : pi.items.reduce((sum, item) => sum + Number(item.vatAmount || 0), 0);
         await window.electronAPI!.query(
-          `INSERT OR REPLACE INTO purchase_invoices (id, number, vendor_id, net_total, vat_amount, total, status, due_date, notes, terms, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [pi.id, pi.number, pi.vendorId, pi.netTotal, 0, pi.netTotal, pi.status, pi.dueDate, pi.notes, pi.terms, pi.createdAt, pi.updatedAt]
+          `INSERT OR REPLACE INTO purchase_invoices (id, number, manual_invoice_number, invoice_number_mode, vendor_id, net_total, vat_amount, total, vat_enabled, status, due_date, notes, terms, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [pi.id, pi.number, pi.manualInvoiceNumber || null, pi.invoiceNumberMode || 'auto', pi.vendorId, pi.netTotal, purchaseVatAmount, pi.netTotal, pi.vatEnabled === false ? 0 : 1, pi.status, pi.dueDate, pi.notes, pi.terms, pi.createdAt, pi.updatedAt]
         );
       }
 
@@ -1014,13 +1017,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const formattedInvoices: Invoice[] = dbInvoices.map((i: any) => ({
           id: i.id,
           number: i.number,
+          manualInvoiceNumber: i.manual_invoice_number || undefined,
+          invoiceNumberMode: i.invoice_number_mode || 'auto',
+          vatEnabled: i.vat_enabled === 0 ? false : true,
           clientId: i.client_id,
           salesmanId: i.salesman_id,
           quotationId: i.quotation_id,
           items: [], // Would need to sync line items separately
           netTotal: i.net_total,
-          vatAmount: i.vat_amount || 0,
-          total: i.total || i.net_total,
           status: i.status,
           dueDate: i.due_date,
           notes: i.notes,
@@ -1037,11 +1041,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const formattedPurchaseInvoices: PurchaseInvoice[] = dbPurchaseInvoices.map((p: any) => ({
           id: p.id,
           number: p.number,
+          manualInvoiceNumber: p.manual_invoice_number || undefined,
+          invoiceNumberMode: p.invoice_number_mode || 'auto',
+          vatEnabled: p.vat_enabled === 0 ? false : true,
           vendorId: p.vendor_id,
           items: [], // Would need to sync line items separately
           netTotal: p.net_total,
-          vatAmount: p.vat_amount || 0,
-          total: p.total || p.net_total,
           status: p.status,
           dueDate: p.due_date,
           notes: p.notes,
@@ -1066,8 +1071,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           notes: p.notes,
           createdAt: p.created_at,
         }));
-        // Note: This will replace all payments, might want to merge instead
-        // For now, we'll set them directly
+        setPayments(formattedPayments);
       }
 
       // Sync business settings from database
@@ -1081,8 +1085,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           logo: dbSettings.logo,
           currency: dbSettings.currency || 'INR',
           taxNumber: dbSettings.tax_number,
-          defaultVatPercentage: settings.defaultVatPercentage ?? 18,
-          vatEnabled: settings.vatEnabled,
+          defaultVatPercentage: dbSettings.default_vat_percentage ?? settings.defaultVatPercentage ?? 18,
+          vatEnabled: dbSettings.vat_enabled ?? settings.vatEnabled,
+          allowManualInvoiceNumberEntry: dbSettings.allow_manual_invoice_number_entry ?? settings.allowManualInvoiceNumberEntry ?? false,
           bankName: settings.bankName,
           bankAccountNumber: settings.bankAccountNumber,
           theme: settings.theme,

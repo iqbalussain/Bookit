@@ -107,6 +107,9 @@ export interface Project {
 export interface Invoice {
   id: string;
   number: string;
+  manualInvoiceNumber?: string;
+  invoiceNumberMode?: 'auto' | 'manual';
+  vatEnabled?: boolean;
   clientId: string;
   salesmanId?: string;
   quotationId?: string;
@@ -129,6 +132,9 @@ export type PurchaseInvoiceStatus = 'draft' | 'sent' | 'partial' | 'paid' | 'ove
 export interface PurchaseInvoice {
   id: string;
   number: string;
+  manualInvoiceNumber?: string;
+  invoiceNumberMode?: 'auto' | 'manual';
+  vatEnabled?: boolean;
   vendorId: string;
   items: LineItem[];
   netTotal: number;
@@ -268,6 +274,7 @@ export interface BusinessSettings {
   taxNumber?: string;
   theme?: 'light' | 'dark' | 'system';
   vatEnabled?: boolean;
+  allowManualInvoiceNumberEntry?: boolean;
   defaultVatPercentage?: number;
   bankName?: string;
   bankAccountNumber?: string;

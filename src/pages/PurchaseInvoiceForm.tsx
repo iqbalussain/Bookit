@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -38,6 +39,9 @@ export default function PurchaseInvoiceForm() {
   defaultDueDate.setDate(defaultDueDate.getDate() + 30);
 
   const [vendorId, setVendorId] = useState(existing?.vendorId || '');
+  const [invoiceNumberMode, setInvoiceNumberMode] = useState<'auto' | 'manual'>(existing?.invoiceNumberMode || 'auto');
+  const [invoiceNumber, setInvoiceNumber] = useState(existing?.number || generatePurchaseInvoiceNumber());
+  const [vatEnabled, setVatEnabled] = useState(existing?.vatEnabled ?? settings.vatEnabled ?? true);
   const [dueDate, setDueDate] = useState(existing?.dueDate || defaultDueDate.toISOString().split('T')[0]);
   const [notes, setNotes] = useState(existing?.notes || '');
   const [terms, setTerms] = useState(existing?.terms || '');
@@ -50,7 +54,10 @@ export default function PurchaseInvoiceForm() {
   const [tempItem, setTempItem] = useState<LineItem>({ id: '', name: '', description: '', quantity: 1, rate: 0, total: 0 });
 
   const netTotal = useMemo(() => items.reduce((sum, item) => sum + item.total, 0), [items]);
-  const vatTotal = useMemo(() => items.reduce((sum, item) => sum + (item.vatAmount ?? 0), 0), [items]);
+  const vatTotal = useMemo(
+    () => (vatEnabled ? items.reduce((sum, item) => sum + (item.vatAmount ?? 0), 0) : 0),
+    [items, vatEnabled]
+  );
   const grandTotal = netTotal + vatTotal;
   const currentStatus = existing?.status || 'draft';
 
@@ -110,18 +117,50 @@ export default function PurchaseInvoiceForm() {
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
+  useEffect(() => {
+    if (invoiceNumberMode === 'auto') {
+      setInvoiceNumber(generatePurchaseInvoiceNumber());
+    }
+  }, [invoiceNumberMode, generatePurchaseInvoiceNumber]);
+
   const handleSave = () => {
     if (!vendorId) { toast({ title: 'Error', description: 'Please select a vendor', variant: 'destructive' }); return; }
     if (items.some((item) => !item.name.trim())) { toast({ title: 'Error', description: 'All items must have a name', variant: 'destructive' }); return; }
 
     const now = new Date().toISOString();
+    const payload: Partial<PurchaseInvoice> = {
+      vendorId,
+      items,
+      netTotal: grandTotal,
+      dueDate,
+      notes,
+      terms,
+      invoiceNumberMode,
+      vatEnabled,
+      updatedAt: now,
+      number: invoiceNumber,
+      manualInvoiceNumber: invoiceNumberMode === 'manual' ? invoiceNumber : undefined,
+    };
+
     if (isEditing && existing) {
-      updatePurchaseInvoice({ ...existing, vendorId, items, netTotal: grandTotal, dueDate, notes, terms, updatedAt: now });
-      toast({ title: 'Bill updated', description: `${existing.number} updated.` });
+      updatePurchaseInvoice({ ...existing, ...payload });
+      toast({ title: 'Bill updated', description: `${invoiceNumber} updated.` });
     } else {
       const pi: PurchaseInvoice = {
-        id: crypto.randomUUID(), number: generatePurchaseInvoiceNumber(), vendorId,
-        items, netTotal: grandTotal, status: 'draft', dueDate, notes, terms, createdAt: now, updatedAt: now,
+        id: crypto.randomUUID(),
+        number: invoiceNumber,
+        vendorId,
+        items,
+        netTotal: grandTotal,
+        status: 'draft',
+        dueDate,
+        notes,
+        terms,
+        createdAt: now,
+        updatedAt: now,
+        invoiceNumberMode,
+        vatEnabled,
+        manualInvoiceNumber: invoiceNumberMode === 'manual' ? invoiceNumber : undefined,
       };
       addPurchaseInvoice(pi);
 
@@ -166,19 +205,50 @@ export default function PurchaseInvoiceForm() {
         <CardContent className="px-3 pb-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label className="text-xs">Vendor *</Label>
-              <Select value={vendorId} onValueChange={setVendorId}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Select vendor" /></SelectTrigger>
-                <SelectContent>
-                  {vendors.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {vendors.length === 0 && <p className="text-[10px] text-muted-foreground">No vendors found. Add a vendor in Parties first.</p>}
+              <Label className="text-xs">Invoice Number Mode</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant={invoiceNumberMode === 'auto' ? 'secondary' : 'outline'}
+                  size="sm"
+                  className="h-9"
+                  onClick={() => setInvoiceNumberMode('auto')}
+                >Auto</Button>
+                <Button
+                  type="button"
+                  variant={invoiceNumberMode === 'manual' ? 'secondary' : 'outline'}
+                  size="sm"
+                  className="h-9"
+                  onClick={() => setInvoiceNumberMode('manual')}
+                >Manual</Button>
+              </div>
+              {invoiceNumberMode === 'manual' && (
+                <Input
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  className="h-9"
+                  placeholder="Enter invoice number"
+                />
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Due Date</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-9" />
             </div>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <Label className="text-xs mb-0">VAT Enabled</Label>
+            <Switch checked={vatEnabled} onCheckedChange={setVatEnabled} />
+          </div>
+          <div className="mt-3">
+            <Label className="text-xs">Vendor *</Label>
+            <Select value={vendorId} onValueChange={setVendorId}>
+              <SelectTrigger className="h-9"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+              <SelectContent>
+                {vendors.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {vendors.length === 0 && <p className="text-[10px] text-muted-foreground">No vendors found. Add a vendor in Parties first.</p>}
           </div>
         </CardContent>
       </Card>

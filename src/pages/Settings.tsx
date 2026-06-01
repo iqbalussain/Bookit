@@ -529,6 +529,16 @@ export default function Settings() {
 
             <div className="flex items-center justify-between rounded-md border p-3 max-w-md">
               <div>
+                <Label className="text-xs">Allow Manual Invoice Number Entry</Label>
+                <p className="text-[10px] text-muted-foreground">Enable manual invoice numbers for sales and purchase invoices.</p>
+              </div>
+              <Switch
+                checked={settings.allowManualInvoiceNumberEntry ?? false}
+                onCheckedChange={(v) => setSettings((prev) => ({ ...prev, allowManualInvoiceNumberEntry: v }))}
+              />
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3 max-w-md">
+              <div>
                 <Label className="text-xs">VAT Enabled</Label>
                 <p className="text-[10px] text-muted-foreground">Apply VAT on quotations, invoices & purchases by default</p>
               </div>

@@ -17,6 +17,20 @@ function initDatabase() {
 
   db = new sqlite3.Database(dbPath);
 
+  function ensureColumn(table, column, definition) {
+    db.get(`PRAGMA table_info(${table})`, [], () => {});
+    db.all(`PRAGMA table_info(${table})`, [], (err, columns) => {
+      if (err) {
+        diagnostics.log('error', `Unable to inspect table ${table}: ${err.message}`);
+        return;
+      }
+      const exists = columns.some((col) => col.name === column);
+      if (!exists) {
+        db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+      }
+    });
+  }
+
   db.serialize(() => {
     // Parties
     db.run(`CREATE TABLE IF NOT EXISTS parties (
@@ -34,9 +48,33 @@ function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       party_id INTEGER,
       invoice_no TEXT,
+      manual_invoice_number TEXT,
+      invoice_number_mode TEXT DEFAULT 'auto',
       total REAL,
+      vat_amount REAL DEFAULT 0,
+      vat_enabled INTEGER DEFAULT 1,
       paid REAL DEFAULT 0,
       status TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME,
+      sync_status INTEGER DEFAULT 0
+    )`);
+
+    // Purchase Invoices
+    db.run(`CREATE TABLE IF NOT EXISTS purchase_invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      vendor_id INTEGER,
+      invoice_no TEXT,
+      manual_invoice_number TEXT,
+      invoice_number_mode TEXT DEFAULT 'auto',
+      total REAL,
+      vat_amount REAL DEFAULT 0,
+      vat_enabled INTEGER DEFAULT 1,
+      paid REAL DEFAULT 0,
+      status TEXT,
+      due_date DATETIME,
+      notes TEXT,
+      terms TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME,
       sync_status INTEGER DEFAULT 0
@@ -68,6 +106,17 @@ function initDatabase() {
       key TEXT PRIMARY KEY,
       value TEXT
     )`);
+
+    // Ensure existing schema gets new invoice fields
+    ensureColumn('invoices', 'manual_invoice_number', 'TEXT');
+    ensureColumn('invoices', 'invoice_number_mode', "TEXT DEFAULT 'auto'");
+    ensureColumn('invoices', 'vat_amount', 'REAL DEFAULT 0');
+    ensureColumn('invoices', 'vat_enabled', 'INTEGER DEFAULT 1');
+
+    ensureColumn('purchase_invoices', 'manual_invoice_number', 'TEXT');
+    ensureColumn('purchase_invoices', 'invoice_number_mode', "TEXT DEFAULT 'auto'");
+    ensureColumn('purchase_invoices', 'vat_amount', 'REAL DEFAULT 0');
+    ensureColumn('purchase_invoices', 'vat_enabled', 'INTEGER DEFAULT 1');
   });
 }
 
@@ -93,9 +142,32 @@ function setupIPC() {
   ipcMain.handle('save-invoice', (_, invoice) => {
     return new Promise((resolve, reject) => {
       db.run(
-        `INSERT INTO invoices (party_id, invoice_no, total, status)
-         VALUES (?, ?, ?, ?)`,
-        [invoice.party_id, invoice.invoice_no, invoice.total, 'unpaid'],
+        `INSERT INTO invoices (
+           party_id,
+           invoice_no,
+           manual_invoice_number,
+           invoice_number_mode,
+           total,
+           vat_amount,
+           vat_enabled,
+           paid,
+           status,
+           created_at,
+           updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          invoice.party_id,
+          invoice.invoice_no,
+          invoice.manual_invoice_number || null,
+          invoice.invoice_number_mode || 'auto',
+          invoice.total,
+          invoice.vat_amount || 0,
+          invoice.vat_enabled === false ? 0 : 1,
+          invoice.paid || 0,
+          invoice.status || 'unpaid',
+          invoice.created_at || new Date().toISOString(),
+          invoice.updated_at || new Date().toISOString(),
+        ],
         function (err) {
           if (err) reject(err);
           else resolve({ id: this.lastID });
@@ -108,6 +180,60 @@ function setupIPC() {
   ipcMain.handle('get-invoices', () => {
     return new Promise((resolve, reject) => {
       db.all(`SELECT * FROM invoices`, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  });
+
+  // SAVE PURCHASE INVOICE
+  ipcMain.handle('save-purchase-invoice', (_, purchaseInvoice) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO purchase_invoices (
+           vendor_id,
+           invoice_no,
+           manual_invoice_number,
+           invoice_number_mode,
+           total,
+           vat_amount,
+           vat_enabled,
+           paid,
+           status,
+           due_date,
+           notes,
+           terms,
+           created_at,
+           updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          purchaseInvoice.vendor_id,
+          purchaseInvoice.invoice_no,
+          purchaseInvoice.manual_invoice_number || null,
+          purchaseInvoice.invoice_number_mode || 'auto',
+          purchaseInvoice.total,
+          purchaseInvoice.vat_amount || 0,
+          purchaseInvoice.vat_enabled === false ? 0 : 1,
+          purchaseInvoice.paid || 0,
+          purchaseInvoice.status || 'draft',
+          purchaseInvoice.due_date || null,
+          purchaseInvoice.notes || null,
+          purchaseInvoice.terms || null,
+          purchaseInvoice.created_at || new Date().toISOString(),
+          purchaseInvoice.updated_at || new Date().toISOString(),
+        ],
+        function (err) {
+          if (err) reject(err);
+          else resolve({ id: this.lastID });
+        }
+      );
+    });
+  });
+
+  // GET PURCHASE INVOICES
+  ipcMain.handle('get-purchase-invoices', () => {
+    return new Promise((resolve, reject) => {
+      db.all(`SELECT * FROM purchase_invoices`, [], (err, rows) => {
         if (err) reject(err);
         else resolve(rows);
       });
