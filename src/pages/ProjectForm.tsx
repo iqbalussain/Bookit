@@ -23,7 +23,7 @@ export default function ProjectForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { projects, addProject, updateProject, getCustomers, getVendors, getProject } = useApp();
+  const { projects, addProject, updateProject, getCustomers, getProject } = useApp();
 
   const isEditing = Boolean(id);
   const existingProject = isEditing ? getProject(id ?? '') : undefined;
@@ -31,7 +31,6 @@ export default function ProjectForm() {
   const [formData, setFormData] = useState<Partial<Project>>({
     name: '',
     customerId: '',
-    vendorId: '',
     lpoNumber: '',
     totalValue: 0,
     startDate: new Date().toISOString().split('T')[0],
@@ -47,11 +46,10 @@ export default function ProjectForm() {
   }, [existingProject]);
 
   const customers = getCustomers();
-  const vendors = getVendors();
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.customerId || !formData.vendorId || !formData.totalValue) {
-      toast({ title: 'Error', description: 'Name, customer, vendor, and total value are required.', variant: 'destructive' });
+    if (!formData.name || !formData.customerId || !formData.totalValue) {
+      toast({ title: 'Error', description: 'Name, customer, and total value are required.', variant: 'destructive' });
       return;
     }
 
@@ -60,7 +58,7 @@ export default function ProjectForm() {
       id: existingProject?.id || crypto.randomUUID(),
       name: formData.name,
       customerId: formData.customerId,
-      vendorId: formData.vendorId,
+      vendorId: existingProject?.vendorId || '',
       lpoNumber: formData.lpoNumber || '',
       totalValue: Number(formData.totalValue) || 0,
       startDate: formData.startDate || new Date().toISOString().split('T')[0],
@@ -144,7 +142,7 @@ export default function ProjectForm() {
             <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="h-9" />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-1">
             <div className="space-y-1.5">
               <Label className="text-xs">Customer *</Label>
               <Select value={formData.customerId || ''} onValueChange={(value) => setFormData({ ...formData, customerId: value })}>
@@ -154,19 +152,6 @@ export default function ProjectForm() {
                 <SelectContent>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Vendor *</Label>
-              <Select value={formData.vendorId || ''} onValueChange={(value) => setFormData({ ...formData, vendorId: value })}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select vendor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vendors.map((vendor) => (
-                    <SelectItem key={vendor.id} value={vendor.id}>{vendor.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -1016,7 +1016,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (dbInvoices && dbInvoices.length > 0) {
         const formattedInvoices: Invoice[] = dbInvoices.map((i: any) => ({
           id: i.id,
-          number: i.number,
+          number: i.number || i.invoice_no,
           manualInvoiceNumber: i.manual_invoice_number || undefined,
           invoiceNumberMode: i.invoice_number_mode || 'auto',
           vatEnabled: i.vat_enabled === 0 ? false : true,
@@ -1040,7 +1040,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (dbPurchaseInvoices && dbPurchaseInvoices.length > 0) {
         const formattedPurchaseInvoices: PurchaseInvoice[] = dbPurchaseInvoices.map((p: any) => ({
           id: p.id,
-          number: p.number,
+          number: p.number || p.invoice_no,
           manualInvoiceNumber: p.manual_invoice_number || undefined,
           invoiceNumberMode: p.invoice_number_mode || 'auto',
           vatEnabled: p.vat_enabled === 0 ? false : true,

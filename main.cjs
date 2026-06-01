@@ -47,6 +47,7 @@ function initDatabase() {
     db.run(`CREATE TABLE IF NOT EXISTS invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       party_id INTEGER,
+      number TEXT,
       invoice_no TEXT,
       manual_invoice_number TEXT,
       invoice_number_mode TEXT DEFAULT 'auto',
@@ -64,6 +65,7 @@ function initDatabase() {
     db.run(`CREATE TABLE IF NOT EXISTS purchase_invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       vendor_id INTEGER,
+      number TEXT,
       invoice_no TEXT,
       manual_invoice_number TEXT,
       invoice_number_mode TEXT DEFAULT 'auto',
@@ -108,11 +110,13 @@ function initDatabase() {
     )`);
 
     // Ensure existing schema gets new invoice fields
+    ensureColumn('invoices', 'number', 'TEXT');
     ensureColumn('invoices', 'manual_invoice_number', 'TEXT');
     ensureColumn('invoices', 'invoice_number_mode', "TEXT DEFAULT 'auto'");
     ensureColumn('invoices', 'vat_amount', 'REAL DEFAULT 0');
     ensureColumn('invoices', 'vat_enabled', 'INTEGER DEFAULT 1');
 
+    ensureColumn('purchase_invoices', 'number', 'TEXT');
     ensureColumn('purchase_invoices', 'manual_invoice_number', 'TEXT');
     ensureColumn('purchase_invoices', 'invoice_number_mode', "TEXT DEFAULT 'auto'");
     ensureColumn('purchase_invoices', 'vat_amount', 'REAL DEFAULT 0');
@@ -144,6 +148,7 @@ function setupIPC() {
       db.run(
         `INSERT INTO invoices (
            party_id,
+           number,
            invoice_no,
            manual_invoice_number,
            invoice_number_mode,
@@ -154,10 +159,11 @@ function setupIPC() {
            status,
            created_at,
            updated_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           invoice.party_id,
-          invoice.invoice_no,
+          invoice.number,
+          invoice.invoice_no || null,
           invoice.manual_invoice_number || null,
           invoice.invoice_number_mode || 'auto',
           invoice.total,
@@ -192,6 +198,7 @@ function setupIPC() {
       db.run(
         `INSERT INTO purchase_invoices (
            vendor_id,
+           number,
            invoice_no,
            manual_invoice_number,
            invoice_number_mode,
@@ -205,10 +212,11 @@ function setupIPC() {
            terms,
            created_at,
            updated_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           purchaseInvoice.vendor_id,
-          purchaseInvoice.invoice_no,
+          purchaseInvoice.number,
+          purchaseInvoice.invoice_no || null,
           purchaseInvoice.manual_invoice_number || null,
           purchaseInvoice.invoice_number_mode || 'auto',
           purchaseInvoice.total,
