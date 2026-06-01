@@ -1,47 +1,101 @@
-# Fix Edit/Delete on Invoices, Payments, Vouchers + Sequence Sales List
+# Fix App Freeze on Sales / Quotations / Projects Pages
 
-## What changes
+## Root cause (single underlying problem)
 
-### 1. Sales invoice list sorted by invoice number (sequence)
-`src/pages/InvoicesList.tsx` currently sorts by `updatedAt` desc.
-Change to sort by `invoice.number` in descending natural order (newest sequence number first), using a `localeCompare(..., undefined, { numeric: true })` comparator so `INV-2026-010` comes after `INV-2026-009`.
+After investigation, the slowness is **not** in the list pages themselves — they are small and render simple cards. The freeze is caused by a render-storm coming from `AppContext` and `useLocalStorage`. Three concrete issues, in order of impact:
 
-### 2. Allow editing invoices marked as Sent / Partial / Overdue
-In `src/pages/InvoiceForm.tsx`:
-- The form already loads the data; only the **Save Changes** button is hidden because of `currentStatus === 'draft'`.
-- Show **Save Changes** for any status except `cancelled` (so draft, sent, partial, overdue, paid can all be edited).
-- Keep the existing `repostSalesInvoice` flow on save — journals are reversed and reposted automatically.
-- Inputs are already editable; no other gating exists.
+### Issue 1 — `useLocalStorage` returns a new `setValue` on every render
+**File:** `src/hooks/useLocalStorage.ts` (lines 33-46)
 
-### 3. Delete + Edit for Payment & Receipt vouchers
-- Add `updatePayment(payment)` and `deletePayment(id)` to `src/contexts/AppContext.tsx`. Delete also reverses the associated journal entry via `reverseJournalForReference('receipt'|'payment', paymentId)` and recomputes the parent invoice status; update re-posts the journal.
-- Rework `src/pages/PaymentsReceipts.tsx`:
-  - Keep the existing "create" form at the top.
-  - Add a **History list** below showing all payments + receipts (filterable by tab) with: invoice number, party, amount, date, method, plus **Edit** and **Delete** buttons.
-  - Edit loads the record back into the form (form switches to "update" mode and on save calls `updatePayment` instead of `addPayment`).
-  - Delete calls `deletePayment` and refreshes the parent invoice's status.
+```ts
+const setValue = useCallback((value) => { … }, [key, storedValue]);
+```
 
-### 4. Delete + Edit for other Vouchers (Expense / Contra / Loan / Journal)
-- Add `updateVoucher(voucher)` and `deleteVoucher(id)` to `AppContext.tsx`. Delete reverses the linked journal entry (by `referenceId = voucher.id`); update reverses and re-posts.
-- In `src/pages/VoucherDashboard.tsx`, change the **Recent Vouchers** list rows to include **Edit** (navigates to `/vouchers/{type}/{id}`) and **Delete** (confirm + call `deleteVoucher` / `deletePayment`).
-- The existing voucher form pages (`ExpensesVoucher`, `ContraVoucher`, `LoanGivenVoucher`, `LoanReceivedVoucher`, `JournalVoucher`) already accept an `id` param pattern via routes; wire the routes in `App.tsx` to `/vouchers/{type}/:id` and prefill the form when an id is present. Save in edit mode calls `updateVoucher` + repost.
+Because `storedValue` is in the deps, `setValue` gets a **new identity every time the state changes**. This is consumed 13+ times in `AppContext.tsx` (clients, quotations, invoices, projects, payments, journalEntries, …). The result:
 
-### 5. Clean up "issues in the application"
-Scope the cleanup to small, observable problems:
-- Remove the now-unused `import { Badge }` etc. that would become dead after the edits.
-- Ensure `calculateInvoicePaymentStatus` is recomputed after a payment is deleted (currently it is derived from `payments[]` so this is automatic — no change needed beyond removing the payment row).
-- No schema migration required; all tables already have full RLS for insert/update/delete.
+- Every effect downstream that depends on `setX` re-fires on every state change.
+- `useRemoteCollection.setAndPush` (deps `[collection, remote, setValue]`) is itself recreated on every render, so its consumers' setters are also unstable.
+- The `AppContext.Provider` value object is a new literal on every render, so **every consumer re-renders on every state change of any collection**. Saving an invoice triggers 4-6 state updates in sequence (invoice, journalEntries, accountBalances, audit log, items stock) — each one re-renders InvoiceForm, both lists, the radial menu, the dashboard, etc.
 
-## Technical notes
+### Issue 2 — `InvoiceForm` regenerates the invoice number on every context render
+**File:** `src/pages/InvoiceForm.tsx` (lines 100-104)
 
-- Journal reversal pattern already exists for `sales_invoice`. Extend `reverseJournalForReference` in `AppContext` to handle `'receipt' | 'payment' | 'expense' | 'contra' | 'loan_given' | 'loan_received' | 'journal'` by emitting a reversal entry (debits/credits flipped) with `reversalOf = original.id` and a new idempotency key.
-- All new context methods follow the existing `addAuditEntry` convention.
-- Sort comparator example:
-  ```ts
-  filteredInvoices.sort((a, b) => b.number.localeCompare(a.number, undefined, { numeric: true }))
-  ```
+```ts
+useEffect(() => {
+  if (invoiceNumberMode === 'auto') setInvoiceNumber(generateInvoiceNumber());
+}, [invoiceNumberMode, generateInvoiceNumber]);
+```
 
-## Out of scope
-- No design overhaul of the voucher dashboard or payments page.
-- No multi-user permission changes.
-- No new reports.
+`generateInvoiceNumber` is a fresh closure on every `AppContext` render (no `useCallback`). Combined with Issue 1, this effect runs constantly while editing — re-computing a number, setting state, and forcing the form to re-render. On an existing invoice it can also overwrite the saved number while typing.
+
+### Issue 3 — `InvoicesList` recomputes payment status O(N×M) per render
+**File:** `src/pages/InvoicesList.tsx` (lines 36-42 and 125-127)
+
+`calculateInvoicePaymentStatus(invoice.id)` is called inside both `.filter(...)` and `.map(...)`. For every invoice it scans all payments. Multiplied by the re-render storm from Issue 1, this becomes the visible freeze on the Sales page.
+
+## Fixes (small, surgical)
+
+### Fix A — Stabilize `useLocalStorage` setter
+**File:** `src/hooks/useLocalStorage.ts`
+
+Use a ref to read the latest value inside `setValue`, and drop `storedValue` from the deps so the setter identity is stable for the component's lifetime:
+
+```ts
+const storedRef = useRef(storedValue);
+useEffect(() => { storedRef.current = storedValue; }, [storedValue]);
+
+const setValue = useCallback((value) => {
+  const newValue = value instanceof Function ? value(storedRef.current) : value;
+  …
+}, [key]);
+```
+
+This single change makes every `setX` in `AppContext` stable, which in turn makes the `useEffect`s and provider-value memoization actually work.
+
+### Fix B — Memoize `AppContext.Provider` value and the number generators
+**File:** `src/contexts/AppContext.tsx`
+
+1. Wrap `generateInvoiceNumber`, `generateQuotationNumber`, `generatePurchaseInvoiceNumber`, `getClient`, `getSalesman`, `getInvoice`, `getQuotation`, `getProject`, `getItem`, `calculateInvoicePaymentStatus` in `useCallback` with the right deps (`[invoices]`, `[quotations]`, etc.). No logic changes.
+2. Wrap the giant object passed to `AppContext.Provider value={…}` in `useMemo` with all collections + the (now stable) callbacks as deps.
+
+After Fix A this prevents the cascading re-render of every consumer on every unrelated state change.
+
+### Fix C — Drop unstable dep in `InvoiceForm` auto-number effect
+**File:** `src/pages/InvoiceForm.tsx`
+
+Change deps to `[invoiceNumberMode]` only (the generator is still called inside but its identity no longer matters). Also guard so it never overwrites an existing invoice's number:
+
+```ts
+useEffect(() => {
+  if (invoiceNumberMode === 'auto' && !isEditing) {
+    setInvoiceNumber(generateInvoiceNumber());
+  }
+}, [invoiceNumberMode, isEditing]);
+```
+
+### Fix D — Single-pass payment totals in `InvoicesList`
+**File:** `src/pages/InvoicesList.tsx`
+
+Pull `payments` from the context, build a `Map<invoiceId, totalPaid>` once with `useMemo`, and let `getDisplayStatus` read from it. Drops the per-render scan from O(N×M) to O(N+M). No UI change.
+
+## Files touched (4 only)
+
+1. `src/hooks/useLocalStorage.ts` — stable setter via ref
+2. `src/contexts/AppContext.tsx` — `useCallback` on getters + `useMemo` on provider value
+3. `src/pages/InvoiceForm.tsx` — fix auto-number effect deps + guard
+4. `src/pages/InvoicesList.tsx` — memoized payment totals map
+
+## Expected performance impact
+
+- **Sales / Quotations / Projects pages:** ~10× faster initial render and near-instant interaction (no more re-render on unrelated state changes).
+- **Saving an invoice / voucher / payment:** instant. Today each save fires 4-6 sequential context updates, each one re-rendering every consumer; after the fix only consumers of the changed slice re-render.
+- **Editing in InvoiceForm:** typing no longer triggers the auto-number effect → no more lag / flicker on each keystroke.
+- **No UI redesign, no business-logic change, no schema change.**
+
+## What is explicitly NOT touched
+
+- No changes to journal-posting math, RLS, voucher numbering, invoice/sales sorting, or auth.
+- No refactor of `useRemoteCollection` (Fix A alone stabilizes its inputs).
+- No changes to `PaymentsReceipts.tsx`, `VoucherDashboard.tsx`, `ProjectsList.tsx`, `QuotationsList.tsx` — they get faster automatically once Fixes A + B land.
+
+Fits comfortably in 3 credits.

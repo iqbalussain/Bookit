@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
  * A storage-error event is dispatched when a write fails so any listener
@@ -29,11 +29,18 @@ export function useLocalStorage<T>(
 
   const [storedValue, setStoredValue] = useState<T>(readValue);
 
+  // Keep latest value in a ref so setValue can stay stable across renders.
+  const storedRef = useRef(storedValue);
+  useEffect(() => {
+    storedRef.current = storedValue;
+  }, [storedValue]);
+
   const setValue = useCallback(
     (value: T | ((prev: T) => T)) => {
       try {
-        const newValue = value instanceof Function ? value(storedValue) : value;
+        const newValue = value instanceof Function ? value(storedRef.current) : value;
         window.localStorage.setItem(key, JSON.stringify(newValue));
+        storedRef.current = newValue;
         setStoredValue(newValue);
       } catch (error) {
         console.error(`[localStorage] Error writing key "${key}":`, error);
@@ -43,7 +50,7 @@ export function useLocalStorage<T>(
         dispatchStorageError(key, isQuota);
       }
     },
-    [key, storedValue],
+    [key],
   );
 
   useEffect(() => {

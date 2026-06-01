@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,28 +18,45 @@ import { currencySymbols, type InvoiceStatus } from '@/types';
 import { Plus, Search, Receipt, Trash2, Edit, ChevronDown, Filter } from 'lucide-react';
 
 export default function InvoicesList() {
-  const { invoices, deleteInvoice, getClient, getSalesman, settings, calculateInvoicePaymentStatus } = useApp();
+  const { invoices, payments, deleteInvoice, getClient, getSalesman, settings } = useApp();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const currencySymbol = currencySymbols[settings.currency];
 
-  const getDisplayStatus = (status: InvoiceStatus, invoiceId: string, dueDate: string): InvoiceStatus => {
+  // Single pass: invoiceId -> total paid. Avoids O(N*M) scan on every render.
+  const paidByInvoice = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of payments) {
+      map.set(p.invoiceId, (map.get(p.invoiceId) ?? 0) + p.amount);
+    }
+    return map;
+  }, [payments]);
+
+  const now = useMemo(() => Date.now(), []);
+
+  const getDisplayStatus = (status: InvoiceStatus, invoiceId: string, dueDate: string, total: number): InvoiceStatus => {
     if (status === 'draft' || status === 'cancelled') return status;
-
-    const paymentStatus = calculateInvoicePaymentStatus(invoiceId);
-    if (paymentStatus === 'paid' || paymentStatus === 'partial') return paymentStatus;
-
-    return new Date(dueDate) < new Date() ? 'overdue' : 'sent';
+    const paid = paidByInvoice.get(invoiceId) ?? 0;
+    if (paid >= total && total > 0) return 'paid';
+    if (paid > 0) return 'partial';
+    return new Date(dueDate).getTime() < now ? 'overdue' : 'sent';
   };
 
-  const filteredInvoices = invoices.filter((i) => {
+  const searchLower = search.toLowerCase();
+  const filteredInvoices = useMemo(() => invoices.filter((i) => {
     const client = getClient(i.clientId);
-    const matchesSearch = i.number.toLowerCase().includes(search.toLowerCase()) || client?.name.toLowerCase().includes(search.toLowerCase());
-    const displayStatus = getDisplayStatus(i.status, i.id, i.dueDate);
+    const matchesSearch = i.number.toLowerCase().includes(searchLower) || client?.name.toLowerCase().includes(searchLower);
+    const displayStatus = getDisplayStatus(i.status, i.id, i.dueDate, i.netTotal);
     const matchesStatus = statusFilter === 'all' || displayStatus === statusFilter;
     return matchesSearch && matchesStatus;
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [invoices, searchLower, statusFilter, paidByInvoice]);
+
+  const sortedInvoices = useMemo(
+    () => [...filteredInvoices].sort((a, b) => b.number.localeCompare(a.number, undefined, { numeric: true })),
+    [filteredInvoices],
+  );
 
   const getStatusDot = (status: InvoiceStatus) => {
     const colors: Record<InvoiceStatus, string> = {
@@ -109,7 +126,7 @@ export default function InvoicesList() {
         </Collapsible>
       </div>
 
-      {filteredInvoices.length === 0 ? (
+      {sortedInvoices.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-8">
             <Receipt className="h-10 w-10 text-muted-foreground mb-3" />
@@ -122,11 +139,9 @@ export default function InvoicesList() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {filteredInvoices
-            .sort((a, b) => b.number.localeCompare(a.number, undefined, { numeric: true }))
-            .map((invoice) => {
+          {sortedInvoices.map((invoice) => {
               const client = getClient(invoice.clientId);
-              const displayStatus = getDisplayStatus(invoice.status, invoice.id, invoice.dueDate);
+              const displayStatus = getDisplayStatus(invoice.status, invoice.id, invoice.dueDate, invoice.netTotal);
               return (
                 <Card key={invoice.id} className="hover:shadow-sm transition-shadow">
                   <CardContent className="p-3">

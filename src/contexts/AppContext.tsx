@@ -1114,7 +1114,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{
+      value={useMemo(() => ({
         companies, selectedCompanyId, setSelectedCompanyId, createCompany, updateCompany, deleteCompany,
         clients, setClients, addClient, updateClient, deleteClient, getClient, getCustomers, getVendors,
         quotations, setQuotations, addQuotation, updateQuotation, deleteQuotation, getQuotation,
@@ -1132,7 +1132,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         syncToDatabase, syncFromDatabase, forceSync, isElectron,
         auditLog, addAuditEntry, getRecentAuditLog,
         generateQuotationNumber, generateInvoiceNumber,
-      }}
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }), [
+        companies, selectedCompanyId,
+        clients, quotations, invoices, projects, purchaseInvoices,
+        payments, accounts, journalEntries, accountBalances,
+        vouchers, items, salesmen, settings, auditLog, isElectron,
+      ])}
     >
       {children}
     </AppContext.Provider>
