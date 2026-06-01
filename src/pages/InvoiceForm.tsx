@@ -101,7 +101,11 @@ export default function InvoiceForm() {
     if (invoiceNumberMode === 'auto') {
       setInvoiceNumber(generateInvoiceNumber());
     }
-  }, [invoiceNumberMode, generateInvoiceNumber]);
+    // generateInvoiceNumber identity is unstable across context renders;
+    // intentionally excluded from deps. Don't overwrite numbers on existing
+    // invoices.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceNumberMode, isEditing]);
 
   const projectSummary = useMemo(() => {
     if (invoiceType !== 'project' || !selectedProject) return undefined;
